@@ -1,0 +1,2300 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Market Game 2027</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --surface-2: #f3f2ee;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11,11,11,0.10);
+  --accent: #2a78d6;
+  --accent-soft: #e6f0fc;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
+  --good: #0ca30c; --good-ink: #006300; --good-soft: #e5f4e5;
+  --warning: #fab219; --warning-soft: #fdf3dc;
+  --critical: #d03b3b; --critical-soft: #fbe9e9;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --surface-2: #232321;
+    --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+    --accent: #3987e5; --accent-soft: #1b2b40;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+    --good-ink: #0ca30c; --good-soft: #15291a; --warning-soft: #33290f; --critical-soft: #3a1c1c;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --surface-2: #232321;
+  --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+  --accent: #3987e5; --accent-soft: #1b2b40;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+  --good-ink: #0ca30c; --good-soft: #15291a; --warning-soft: #33290f; --critical-soft: #3a1c1c;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--page); color: var(--ink);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.app { display: grid; grid-template-columns: 360px 1fr; min-height: 100vh; }
+@media (max-width: 980px) { .app { grid-template-columns: 1fr; } .side { position: static !important; height: auto !important; } }
+
+/* ---------- Barre latérale : paramètres ---------- */
+.side {
+  position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  background: var(--surface); border-right: 1px solid var(--border); padding: 18px 16px 40px;
+}
+.side h1 { font-size: 17px; margin: 0 0 2px; }
+.side .sub { color: var(--ink-2); font-size: 12.5px; margin-bottom: 12px; }
+.side-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+details.group { border-top: 1px solid var(--border); padding: 8px 0; }
+details.group > summary {
+  cursor: pointer; font-weight: 600; font-size: 13px; list-style: none;
+  display: flex; justify-content: space-between; align-items: center; padding: 4px 0;
+}
+details.group > summary::after { content: "▸"; color: var(--muted); transition: transform .15s; }
+details.group[open] > summary::after { transform: rotate(90deg); }
+.hint { color: var(--muted); font-size: 12px; margin: 2px 0 8px; }
+.field { display: grid; grid-template-columns: 1fr 108px; align-items: center; gap: 8px; margin: 5px 0; }
+.field label { font-size: 13px; color: var(--ink-2); }
+.field .unit { color: var(--muted); font-size: 11.5px; }
+input[type=number], input[type=text], select {
+  width: 100%; font: inherit; font-size: 13px; color: var(--ink);
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 7px; padding: 5px 7px;
+  font-variant-numeric: tabular-nums;
+}
+input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+input.changed { border-color: var(--accent); background: var(--accent-soft); }
+.qgrid { display: grid; grid-template-columns: 44px 1fr 1fr; gap: 5px 8px; align-items: center; font-size: 12.5px; }
+.qgrid .h { color: var(--muted); font-size: 11.5px; }
+.check { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--ink-2); margin: 6px 0; }
+.choc-row { display: grid; grid-template-columns: 1fr 74px 26px; gap: 6px; margin: 5px 0; }
+
+button {
+  font: inherit; font-size: 12.5px; cursor: pointer; color: var(--ink);
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 7px; padding: 5px 10px;
+}
+button:hover { border-color: var(--axis); }
+button.primary { background: var(--accent); color: #fff; border-color: transparent; }
+button.ghost { background: transparent; }
+button.icon { padding: 4px 7px; }
+
+/* ---------- Contenu principal ---------- */
+.main { padding: 20px 24px 60px; min-width: 0; }
+.banner {
+  display: none; gap: 10px; align-items: center; justify-content: space-between;
+  background: var(--accent-soft); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 8px 12px; margin-bottom: 14px; font-size: 13px;
+}
+.banner.show { display: flex; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+.kpi .lab { color: var(--ink-2); font-size: 12.5px; }
+.kpi .val { font-size: 22px; font-weight: 600; margin-top: 2px; }
+.kpi .val.txt { font-size: 15.5px; }
+.kpi .det { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; min-width: 0; }
+.card h2 { font-size: 15px; margin: 0 0 4px; }
+.card .desc { color: var(--ink-2); font-size: 12.5px; margin: 0 0 12px; max-width: 900px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.row2.decision { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); }
+@media (max-width: 1250px) { .row2 { grid-template-columns: 1fr; } }
+.toolbar { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; }
+.seg button.on { background: var(--accent); color: #fff; }
+.seg.wrap { display: grid; grid-template-columns: 1fr 1fr; }
+.seg.wrap button { border-bottom: 1px solid var(--border); }
+
+.chart { width: 100%; overflow: hidden; }
+.chart svg { display: block; width: 100%; height: auto; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--ink-2); margin-top: 6px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.legend i.line { height: 3px; border-radius: 2px; }
+
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 6px 9px; text-align: right; border-bottom: 1px solid var(--grid); white-space: nowrap; font-variant-numeric: tabular-nums; }
+th { color: var(--ink-2); font-weight: 600; font-size: 12px; background: var(--surface-2); white-space: normal; vertical-align: bottom; }
+td:first-child, th:first-child { text-align: left; }
+tr.chosen td, td.chosen { background: var(--good-soft); }
+td.chosen { box-shadow: inset 0 0 0 2px var(--good); }
+tr.clickable { cursor: pointer; }
+tr.clickable:hover td { background: var(--surface-2); }
+.neg { color: var(--critical); }
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 99px; font-size: 12px; font-weight: 600; }
+.badge.ok { background: var(--good-soft); color: var(--good-ink); }
+.badge.ko { background: var(--critical-soft); color: var(--critical); }
+.badge.warn { background: var(--warning-soft); color: var(--ink); }
+.sens { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); }
+.sens i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.field.wide { grid-template-columns: 1fr; gap: 4px; }
+
+/* ---------- Éditeur de stratégies ---------- */
+.chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.chip { border-radius: 99px; padding: 5px 12px; }
+.chip.on { background: var(--accent); color: #fff; border-color: transparent; }
+.chip.best { box-shadow: inset 0 0 0 2px var(--good); }
+.editor { display: grid; grid-template-columns: 1fr; gap: 10px; }
+.step { display: grid; grid-template-columns: 44px 230px repeat(4, minmax(64px, 1fr)); gap: 8px; align-items: center; }
+.step .d { font-weight: 600; }
+.step .qcol { display: flex; flex-direction: column; font-size: 11.5px; color: var(--muted); gap: 2px; }
+.step .single { grid-column: span 4; display: flex; gap: 8px; align-items: center; font-size: 12.5px; color: var(--ink-2); }
+.step .single input { width: 100px; }
+@media (max-width: 760px) { .step { grid-template-columns: 1fr 1fr; } .step .d { grid-column: span 2; } .step .single { grid-column: span 2; } }
+.namebar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.namebar input { max-width: 260px; }
+.warnbox { background: var(--warning-soft); border-radius: 8px; padding: 7px 10px; font-size: 12.5px; }
+.cov { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; }
+.cov div { background: var(--surface-2); border-radius: 8px; padding: 7px 10px; }
+.cov b { display: block; font-size: 16px; }
+.cov span { color: var(--muted); font-size: 12px; }
+
+#tip {
+  position: fixed; pointer-events: none; z-index: 50; display: none;
+  background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 8px;
+  padding: 7px 10px; font-size: 12.5px; box-shadow: 0 4px 16px rgba(0,0,0,.12); max-width: 300px;
+}
+#tip .t { font-weight: 600; margin-bottom: 2px; }
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: none; align-items: center; justify-content: center; z-index: 60; padding: 16px; }
+.modal.show { display: flex; }
+.modal .box { background: var(--surface); border-radius: var(--radius); padding: 16px; width: min(760px, 100%); max-height: 90vh; display: flex; flex-direction: column; gap: 10px; }
+.modal textarea { width: 100%; min-height: 380px; font: 12.5px/1.4 ui-monospace, Consolas, monospace; background: var(--surface-2); color: var(--ink); border: 1px solid var(--border); border-radius: 8px; padding: 10px; }
+.foot { color: var(--muted); font-size: 12px; margin-top: 24px; }
+
+/* ---------- Onglets et étapes ---------- */
+.topbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.tabs { display: inline-flex; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 3px; gap: 3px; }
+.tabs button { border: 0; background: transparent; padding: 7px 16px; border-radius: 8px; font-size: 13.5px; font-weight: 600; color: var(--ink-2); }
+.tabs button.on { background: var(--accent); color: #fff; }
+.tabs button small { display: block; font-weight: 400; font-size: 11px; opacity: .8; }
+.tabs { flex-wrap: wrap; max-width: 100%; }
+@media (max-width: 560px) { .tabs button { padding: 6px 10px; } }
+.step-title { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin: 44px 0 14px; padding: 12px 16px; background: var(--accent-soft); border-left: 5px solid var(--accent); border-radius: var(--radius); }
+.step-title .num { background: var(--accent); color: #fff; border-radius: 99px; width: 30px; height: 30px; display: inline-grid; place-items: center; font-size: 14px; font-weight: 700; flex: none; }
+.step-title h3 { margin: 0; font-size: 18px; }
+.step-title span.sub { color: var(--ink-2); font-size: 12.5px; }
+.explain { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.explain div { background: var(--surface-2); border-radius: 8px; padding: 10px 12px; font-size: 12.5px; color: var(--ink-2); }
+.explain b.big { display: block; font-size: 18px; color: var(--ink); margin: 2px 0; }
+details.more { margin-top: 10px; }
+details.more > summary { cursor: pointer; color: var(--accent); font-size: 13px; font-weight: 600; }
+.subtoggle { margin-bottom: 12px; }
+[hidden] { display: none !important; }
+.step.mois { grid-template-columns: 44px 230px repeat(8, minmax(52px, 1fr)); }
+@media (max-width: 1100px) { .step.mois { grid-template-columns: 44px 1fr 1fr 1fr 1fr; } .step.mois .d { grid-column: span 1; } }
+.decision-banner { border: 2px solid var(--good); background: var(--good-soft); border-radius: var(--radius); padding: 14px 18px; margin-bottom: 14px; }
+.decision-banner.warn { border-color: var(--warning); background: var(--warning-soft); }
+.decision-banner .titre { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.decision-banner .ligne { font-size: 13.5px; color: var(--ink-2); margin-top: 4px; }
+tr.sel td { background: var(--surface-2); }
+tr.sel td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+th.num { text-align: right; }
+.explique { font-size: 13px; color: var(--ink-2); line-height: 1.55; }
+.explique p { margin: 6px 0; }
+.explique .formule { background: var(--surface-2); border-radius: 8px; padding: 8px 12px; font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; margin: 6px 0; }
+.topbar + .banner + .subtoggle + .step-title, .topbar + .banner + .step-title { margin-top: 8px; }
+.recap-dates { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.recap-dates .card { margin: 0; }
+.recap-dates .date { display: inline-block; background: var(--accent); color: #fff; border-radius: 6px; padding: 2px 8px; font-size: 12px; font-weight: 700; margin-bottom: 6px; }
+.recap-dates .grand { font-size: 17px; font-weight: 700; margin: 4px 0; }
+.recap-dates .ligne { font-size: 13px; color: var(--ink-2); margin-top: 4px; }
+.explique ul { margin: 4px 0; padding-left: 20px; }
+.explique li { margin: 5px 0; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- =================== PARAMÈTRES (selon l'onglet) =================== -->
+  <aside class="side">
+    <h1>Market Game 2027</h1>
+    <div class="sub" id="subtitle"></div>
+    <div class="side-actions">
+      <button id="btnEdit" title="Déverrouiller la modification des paramètres et des stratégies">🔒 Modifier</button>
+      <button id="btnReset" title="Revenir aux valeurs de config.py">↺ Réinitialiser</button>
+      <button id="btnTheme" class="ghost">Thème</button>
+    </div>
+    <div class="side-actions" id="editActions" hidden>
+      <button id="btnCsv" class="primary" title="Enregistrer paramètres et stratégies dans dashboard_local.csv">💾 Enregistrer en CSV</button>
+      <button id="btnExport" title="Code à recopier dans config.py">⇩ Exporter vers Python</button>
+    </div>
+    <div class="hint" id="lockHint"></div>
+    <div id="config"></div>
+  </aside>
+
+  <!-- =================== CONTENU =================== -->
+  <main class="main">
+    <div class="topbar">
+      <div class="tabs" id="tabs">
+        <button data-tab="T1">T1<small>22/09/2026</small></button>
+        <button data-tab="T2">T2<small>01/12/2026</small></button>
+        <button data-tab="T3">T3<small>31/12/2026</small></button>
+        <button data-tab="RES">01/01<small>résultat day-ahead</small></button>
+        <button data-tab="REC">Récap<small>stratégie choisie</small></button>
+      </div>
+      <div class="hint" id="tabHint" style="margin:0; max-width:620px"></div>
+    </div>
+    <div class="banner" id="banner">
+      <span>Des paramètres ou des stratégies ont été modifiés ici (sauvegardés dans ce navigateur).</span>
+      <button id="btnReset2">Réinitialiser</button>
+    </div>
+
+    <!-- ============ RÉCAPITULATIF ============ -->
+    <div id="recap" data-show="REC">
+      <div class="step-title" style="margin-top:8px"><span class="num">★</span><h3>Récapitulatif de notre stratégie 2027</h3><span class="sub">l'essentiel, sans les détails de calcul</span></div>
+      <div class="decision-banner" id="recBanner"></div>
+      <div class="kpis" id="recKpis"></div>
+      <div class="recap-dates" id="recDates"></div>
+      <section class="card"><h2>Ce que nous avons acheté</h2><p class="desc">Produits EEX achetés à l'avance. Le reste de la consommation (écarts météo et forme heure par heure) est acheté ou revendu au spot.</p><div class="tablewrap" id="recAchats"></div></section>
+      <section class="card"><h2>Pourquoi cette stratégie</h2><div class="explique" id="recPourquoi"></div></section>
+      <div class="row2">
+        <section class="card"><h2>Étape 1 · Décision du 22/09 (onglet T1)</h2><p class="desc">Les 5 stratégies avec l'information du 22/09 (prix du 2e achat anticipé). Mêmes chiffres que l'onglet T1, étape 4.</p><div class="tablewrap" id="recT1"></div></section>
+        <section class="card"><h2>Étape 2 · Décision du 01/12 (onglet T2)</h2><p class="desc">L'achat du 22/09 est figé. On compare les façons de faire le 2e achat, avec les vrais prix du 01/12. Mêmes chiffres que l'onglet T2, « Décision réelle », étape 4.</p><div class="tablewrap" id="recT2"></div></section>
+      </div>
+    </div>
+
+    <!-- ============ RÉSULTAT DU DAY-AHEAD DU 01/01/2027 ============ -->
+    <div id="resultat" data-show="RES">
+      <div class="step-title" style="margin-top:8px"><span class="num">★</span><h3>Résultat du day-ahead du 01/01/2027</h3><span class="sub" id="resSub"></span></div>
+      <div class="decision-banner" id="resBanner"></div>
+      <div id="resContenu">
+      <div class="kpis" id="resKpis"></div>
+      <section class="card">
+        <h2>Prix de chaque heure</h2>
+        <p class="desc">Prix fixé par la dernière offre nécessaire pour servir les achats de toutes les équipes du groupe (merit order). Survoler une barre pour voir qui fixe le prix.</p>
+        <div class="chart" id="chResPrix"></div>
+      </section>
+      <section class="card">
+        <h2>Ce que notre ordre a acheté et revendu</h2>
+        <p class="desc">Volume exécuté de notre ordre : si le prix est négatif, intervalle 1 (solaire arrêté) ; sinon, intervalle 2 (Net Load − solaire).</p>
+        <div class="chart" id="chResVol"></div>
+        <div class="legend"><span><i style="background:var(--s1)"></i>Achat</span><span><i style="background:var(--s2)"></i>Revente</span></div>
+        <details class="more"><summary>Tableau heure par heure</summary><div class="tablewrap" id="tblRes" style="margin-top:8px"></div></details>
+      </section>
+      <section class="card"><h2>Marge de la journée</h2><p class="desc">Ventes aux clients − produits de janvier livrés ce jour-là (au prix payé le 22/09 ou le 01/12) − day-ahead.</p><div class="tablewrap" id="tblResMarge"></div></section>
+      <section class="card"><h2>Offre des producteurs (merit order)</h2><p class="desc">Moyens proposés par le professeur pour le groupe, du moins cher au plus cher.</p><div class="tablewrap" id="tblResMerit"></div></section>
+      <section class="card"><h2>Ce qu'on retient</h2><div class="explique" id="resLecons"></div></section>
+      </div>
+    </div>
+
+    <!-- ============ T2 / T3 : sous-mode ============ -->
+    <div class="seg subtoggle" id="subT2" data-show="T2">
+      <button data-sub="T2">Décision réelle : T1 figé, on choisit la part T2</button>
+      <button data-sub="R2">Exercice : rejouer toutes les stratégies au 01/12</button>
+    </div>
+
+    <!-- ============ ÉTAPE : DONNÉES ============ -->
+    <div class="step-title" data-show="T1 T2 T3"><span class="num">1</span><h3 id="t_donnees">Données</h3><span class="sub" id="s_donnees"></span></div>
+    <div class="kpis" id="kpisData" data-show="T1 T2 T3"></div>
+    <section class="card" data-show="T1 T2 T3">
+      <h2 id="h_prix">Prix EEX</h2>
+      <p class="desc" id="d_prix"></p>
+      <div class="tablewrap" id="tblPrix"></div>
+    </section>
+    <section class="card" data-show="T2">
+      <h2>Anticipation (faite à T1) contre réalité du 01/12</h2>
+      <p class="desc">À T1, le prix d'achat T2 était inconnu : on l'a anticipé dans chaque scénario avec F_T2 = F_T1 + α × (niveau du scénario − F_T1). Guidelines §4.1.</p>
+      <div class="tablewrap" id="tblAnticip"></div>
+      <p class="desc" id="anticipText" style="margin-top:10px"></p>
+    </section>
+    <section class="card" data-show="T1">
+      <h2>Volume 2027 par mois (le « 100 % »)</h2>
+      <p class="desc">Consommation à température normale et avec la météo de chaque année historique.</p>
+      <div class="chart" id="chVol" style="max-width:780px"></div>
+      <div class="legend" id="legVol"></div>
+    </section>
+
+    <!-- ============ ÉTAPE : POSITION OUVERTE (T3) ============ -->
+    <div class="step-title" data-show="T3"><span class="num">2</span><h3>Position ouverte du 01/01/2027</h3><span class="sub">commande day-ahead · guidelines §5</span></div>
+    <section class="card" data-show="T3" id="cardPO">
+      <p class="desc">Position ouverte = consommation prévue − livraison des produits détenus − production solaire. Positif : court, on achète au day-ahead. Négatif : long, on revend. Le 01/01/2027 est un vendredi férié : consommation de jour férié, mais les produits Peak livrent de 8h à 20h.</p>
+      <div class="toolbar">
+        <label class="hint" style="margin:0">Stratégie détenue</label><select id="poStrat" style="width:auto"></select>
+        <label class="hint" style="margin:0 0 0 8px">Prévision</label><select id="poSrc" style="width:auto"></select>
+        <button id="poCsv">⇩ Tableau CSV</button>
+      </div>
+      <div class="kpis" id="poKpis" style="margin-bottom:8px"></div>
+      <div class="chart" id="chPO"></div>
+      <div class="legend"><span><i style="background:var(--s1)"></i>Court : achat au day-ahead</span><span><i style="background:var(--s2)"></i>Long : revente</span></div>
+      <details class="more"><summary>Tableau heure par heure</summary><div class="tablewrap" id="tblPO" style="margin-top:8px"></div></details>
+    </section>
+    <label class="check" data-show="T3"><input type="checkbox" id="rejeuT3"> Rejouer aussi toutes les stratégies avec les prix et les clients du 31/12 (exercice)</label>
+
+    <!-- ============ ÉTAPE : SCÉNARIOS ============ -->
+    <div class="step-title" data-show="T1 T2 R3"><span class="num" id="n_scen">2</span><h3>Scénarios</h3><span class="sub" id="s_scen"></span></div>
+    <section class="card" data-show="T1 T2 R3">
+      <div class="explain" id="explainParams"></div>
+      <details class="more"><summary>Comprendre l'équation du prix spot et les anomalies recentrées</summary>
+        <div class="explique" id="explSpot" style="margin-top:8px"></div>
+      </details>
+      <div class="tablewrap" id="tblScen" style="margin-top:12px"></div>
+      <details class="more"><summary>Prix spot 2027 par mois dans chaque scénario</summary>
+        <div class="chart" id="chSpot" style="margin-top:8px; max-width:780px"></div><div class="legend" id="legSpot"></div>
+      </details>
+    </section>
+
+    <!-- ============ ÉTAPE : STRATÉGIES ET PRODUITS ============ -->
+    <div class="step-title" data-show="T1 T2 R3"><span class="num" id="n_strat">3</span><h3>Stratégies et produits</h3><span class="sub" id="s_strat"></span></div>
+    <section class="card" data-show="T1 T2 R3">
+      <p class="desc">Choisis une stratégie pour la modifier. Les % s'appliquent au volume à température normale de la date. Chaque achat suit la forme Base + Peak de la consommation : Base = consommation moyenne hors pointe, Peak = supplément de 8h à 20h en semaine.</p>
+      <div class="chips" id="chips"></div>
+      <div class="editor" id="editor"></div>
+      <details class="more" open><summary>Sous-stratégies : quel produit acheter à T1 et à T2 ?</summary>
+        <p class="desc" style="margin-top:8px" id="ssDesc"></p>
+        <div class="tablewrap" id="tblSS"></div>
+        <h2 style="margin-top:14px" id="ssMatTitre"></h2>
+        <div class="tablewrap" id="tblSSmat"></div>
+      </details>
+    </section>
+
+    <!-- ============ ÉTAPE : RÉSULTATS ============ -->
+    <div class="step-title" data-show="T1 T2 R3"><span class="num" id="n_res">4</span><h3>Résultats et décision</h3><span class="sub">règle du Board : meilleure marge espérée parmi les stratégies dont le pire cas reste au-dessus du plancher</span></div>
+    <div class="decision-banner" id="decBanner" data-show="T1 T2 R3"></div>
+    <div class="kpis" id="kpis" data-show="T1 T2 R3"></div>
+    <section class="card" data-show="T1 T2 R3">
+      <p class="desc" id="decisionText"></p>
+      <div class="row2 decision">
+        <div>
+          <div class="chart" id="chScatter"></div>
+          <div class="legend"><span><i style="background:var(--s1)"></i>Stratégie</span><span><i style="background:var(--good)"></i>Retenue</span><span><i class="line" style="background:var(--critical)"></i>Plancher</span></div>
+        </div>
+        <div class="tablewrap" id="tblSynth"></div>
+      </div>
+    </section>
+    <section class="card" data-show="T1 T2 R3">
+      <h2>Marge par stratégie et par scénario</h2>
+      <div class="toolbar"><span class="hint" style="margin:0">Niveau de prix :</span><div class="seg" id="segChoc"></div></div>
+      <div class="chart" id="chBars"></div>
+      <div class="legend" id="legBars"></div>
+    </section>
+
+    <!-- ============ ÉTAPE : MONTE CARLO ============ -->
+    <div class="step-title" data-show="T1 T2"><span class="num" id="n_mc">5</span><h3>Monte Carlo : météo × niveau de prix</h3></div>
+    <section class="card" data-show="T1 T2" id="cardMC">
+      <p class="desc" id="mcDesc"></p>
+      <div class="toolbar">
+        <label class="hint" style="margin:0">Tirages</label><input type="number" id="mcN" step="1000" min="200" max="50000" style="width:90px">
+        <label class="hint" style="margin:0 0 0 8px">Volatilité annuelle</label><input type="number" id="mcSig" step="0.05" min="0" style="width:80px">
+        <label class="hint" style="margin:0 0 0 8px">Écart par trimestre</label><input type="number" id="mcSq" step="0.05" min="0" style="width:80px">
+        <button id="mcSeed">↻ Nouveau tirage</button>
+      </div>
+      <div class="row2 decision">
+        <div>
+          <div class="chart" id="chMC"></div>
+          <div class="legend"><span><i class="line" style="background:var(--s1);height:8px"></i>5 % – 95 % des tirages</span><span><i class="line" style="background:var(--s1)"></i>1 % – 99 %</span><span><i style="background:var(--ink);border-radius:50%"></i>Moyenne</span></div>
+        </div>
+        <div class="tablewrap" id="tblMC"></div>
+      </div>
+      <p class="desc" id="mcText" style="margin-top:10px"></p>
+    </section>
+
+    <!-- ============ RÉTROSPECTIF (T2) ============ -->
+    <section class="card" data-show="T2">
+      <h2>Rétrospectif : et si on avait connu les prix du 01/12 dès le 22/09 ?</h2>
+      <p class="desc">Analyse après coup, pour le retour d'expérience du rapport. Chaque sous-stratégie garde son achat T1 au prix du 22/09, mais l'achat T2 est payé au prix réel du 01/12, avec les clients du 01/12. Ce n'est <b>pas</b> une façon de choisir T1 : les guidelines interdisent de ré-optimiser T1 avec une information postérieure.</p>
+      <div class="tablewrap" id="tblRetro"></div>
+      <h2 style="margin-top:14px" id="retroMatTitre"></h2>
+      <div class="tablewrap" id="tblRetroMat"></div>
+      <p class="desc" id="retroText" style="margin-top:10px"></p>
+    </section>
+
+    <!-- ============ DÉTAILS ============ -->
+    <section class="card" data-show="T1 T2 R3">
+      <details class="more"><summary>Détails : coût de la protection, sensibilité au plancher, achats et marges de la stratégie sélectionnée</summary>
+        <div class="row2" style="margin-top:10px">
+          <div><h2>Coût de la protection</h2><p class="desc">Se couvrir, c'est comme une assurance : on accepte de gagner un peu moins en moyenne pour perdre beaucoup moins dans le pire scénario. On compare chaque stratégie à « tout au spot » (S0, aucune assurance).</p><div class="tablewrap" id="tblProt"></div></div>
+          <div><h2>Sensibilité au plancher</h2><p class="desc">La même règle rejouée pour d'autres planchers.</p><div class="tablewrap" id="tblSens"></div></div>
+        </div>
+        <h2 style="margin-top:16px">Stratégie sélectionnée</h2><p class="desc" id="detailDesc"></p>
+        <div class="tablewrap" id="tblDetail"></div>
+        <h2 style="margin-top:16px">Couverture 100 % : MW par période</h2><div class="tablewrap" id="tblProd"></div>
+      </details>
+    </section>
+
+    <div class="foot" id="foot"></div>
+  </main>
+</div>
+
+<div id="tip"></div>
+<div class="modal" id="modal">
+  <div class="box">
+    <strong>Paramètres à recopier dans config.py</strong>
+    <textarea id="exportText" readonly></textarea>
+    <div style="display:flex; gap:8px; justify-content:flex-end">
+      <button id="btnCopy" class="primary">Copier</button><button id="btnClose">Fermer</button>
+    </div>
+  </div>
+</div>
+<script>
+"use strict";
+/* ============================================================
+   DONNÉES (injectées par export_dashboard.py)
+   ============================================================ */
+const D = /*__DONNEES__*/null;
+
+/* ============================================================
+   OUTILS
+   ============================================================ */
+const $ = (id) => document.getElementById(id);
+const clone = (x) => JSON.parse(JSON.stringify(x));
+const fr = (x, d = 2) => (x == null || !isFinite(x)) ? "–" :
+  x.toLocaleString("fr-FR", { minimumFractionDigits: d, maximumFractionDigits: d });
+const pct = (x, d = 1) => fr(x * 100, d) + " %";
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const code = (nom) => nom.split(" ")[0];
+const mt = (v, d = 2) => `<span class="${v < 0 ? "neg" : ""}">${fr(v, d)}</span>`;
+const SERIES = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)"];
+const MOIS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
+
+/* Périodes de couverture : les 6 mois cotés (janvier à juin) puis Q3 et Q4.
+   EEX ne cote que les prochains mois : au 22/09, le dernier mois listé est
+   juin 2027. Juillet à décembre se couvrent donc avec Q3 et Q4. */
+const P = 8;
+const NOMS_P = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Q3", "Q4"];
+const CLES_MOIS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+const PQ = [0, 0, 0, 1, 1, 1, 2, 3];               // période -> trimestre
+const PER_Q = [[0, 1, 2], [3, 4, 5], [6], [7]];     // trimestre -> périodes
+const TOUTES = [0, 1, 2, 3, 4, 5, 6, 7];
+const TYPES = {
+  aucun: "Aucun achat",
+  mois: "Mois (janv.–juin) + Q3, Q4",
+  trimestres: "Trimestres Q1 à Q4",
+  cal_base_peak: "Cal-27 Base + Peak",
+  cal_base: "Cal-27 Base plat",
+  complement: "Compléter jusqu'à (mois + Q3, Q4)",
+};
+const LIB_DATE = { T1: "22/09", T2: "01/12", T3: "31/12" };
+const STORE = "mg2027-dashboard-v3";
+
+/* ============================================================
+   ÉTAT : paramètres + stratégies (sauvegardés dans le navigateur)
+   ============================================================ */
+function remplir(a, n) {
+  a = Array.isArray(a) ? a.map(Number) : Array(n).fill(+a || 0);
+  while (a.length < n) a.push(a.length ? a[a.length - 1] : 0);
+  return a.slice(0, n);
+}
+function normaliserStrategie(s) {
+  const etapes = [];
+  for (const date of ["T1", "T2"]) {
+    const e0 = (s.etapes || []).find((x) => x.date === date);
+    const e = e0 ? clone(e0) : { date, type: "aucun", ratio: 0 };
+    if (e.type === "forme") e.type = "trimestres";          // ancien nom
+    if (!TYPES[e.type]) e.type = "aucun";
+    if (e.type === "mois") e.ratio = remplir(e.ratio, 8);
+    else if (e.type === "trimestres") e.ratio = remplir(e.ratio, 4);
+    else if (e.type === "complement") { e.ratio = remplir(e.ratio, 8); e.prod = e.prod || "mois"; }
+    else e.ratio = Array.isArray(e.ratio) ? +e.ratio[0] : +e.ratio || 0;
+    etapes.push(e);
+  }
+  return { nom: s.nom, etapes };
+}
+if (!D.defaults.mc) D.defaults.mc = { n: 5000, sigma: 0.20, sigmaQ: 0.10, seed: 1 };
+D.defaults.tab = "T1"; D.defaults.sub = "T2"; D.defaults.rejeuT3 = false;
+D.defaults.decisionT1 = "auto";   // à chaque ouverture : décision T1 = recommandation de l'onglet T1
+delete D.defaults.mode;
+const DEFAULT_CFG = clone(D.defaults);
+const DEFAULT_STRATS = D.strategies.map(normaliserStrategie);
+
+/* Onglets : T1, T2, T3 si leurs prix existent ; Récap toujours ; résultat du 01/01
+   dès que la date T2 existe (sans les prix DA_0101 de config.py, la page explique quoi faire). */
+const aResultatDA = () => !!(D.meta.da && Array.isArray(D.meta.da.prix) && D.meta.da.prix.length === 24);
+function ongletDispo(t) {
+  if (t === "REC") return true;
+  if (t === "RES") return !!cfg.dates.T2;
+  return !!cfg.dates[t];
+}
+
+let cfg = clone(DEFAULT_CFG);
+let strats = clone(DEFAULT_STRATS);
+let sel = 0;               // stratégie sélectionnée dans l'éditeur
+let chocVue = 0;           // niveau de prix affiché dans le graphique en barres
+try {
+  const saved = JSON.parse(localStorage.getItem(STORE) || "null");
+  if (saved && saved.cfg && saved.strats) {
+    cfg = Object.assign(clone(DEFAULT_CFG), saved.cfg);
+    cfg.dates = Object.assign(clone(DEFAULT_CFG.dates), saved.cfg.dates || {});
+    cfg.t3 = Object.assign(clone(DEFAULT_CFG.t3), saved.cfg.t3 || {});
+    cfg.mc = Object.assign(clone(DEFAULT_CFG.mc), saved.cfg.mc || {});
+    if (!ongletDispo(cfg.tab)) cfg.tab = "T1";
+    cfg.decisionT1 = "auto";        // un choix manuel ne dure que le temps de la session
+    strats = saved.strats.map(normaliserStrategie);
+  }
+  const th = localStorage.getItem(STORE + "-theme");
+  if (th) document.documentElement.dataset.theme = th;
+} catch (e) { /* stockage indisponible : on garde les valeurs par défaut */ }
+
+function sauver() {
+  try { localStorage.setItem(STORE, JSON.stringify({ cfg, strats })); } catch (e) {}
+  const sansNav = (c) => JSON.stringify(Object.assign({}, c, { tab: null, sub: null, rejeuT3: null }));
+  const modifie = sansNav(cfg) !== sansNav(DEFAULT_CFG) ||
+                  JSON.stringify(strats) !== JSON.stringify(DEFAULT_STRATS);
+  $("banner").classList.toggle("show", modifie);
+}
+
+/* ============================================================
+   DONNÉES HORAIRES STATIQUES
+   ============================================================ */
+const N = D.heures.q.length;
+const Q = Int8Array.from(D.heures.q, (q) => q - 1);   // 0..3
+const PK = Uint8Array.from(D.heures.pk);
+const MO = Int8Array.from(D.heures.m, (m) => m - 1);  // 0..11
+const PER = Int8Array.from(MO, (m) => (m < 6 ? m : m < 9 ? 6 : 7));
+const ANNEES = D.meta.annees;
+const HP = Array(P).fill(0), HPK = Array(P).fill(0);
+for (let h = 0; h < N; h++) { HP[PER[h]]++; if (PK[h]) HPK[PER[h]]++; }
+const hP = (p, comp) => (comp === "Base" ? HP[p] : HPK[p]);
+const H_PK_AN = HPK.reduce((a, b) => a + b, 0);
+
+/* Forme horaire historique, renormalisée par bloc (période, peak/hors peak) :
+   le niveau de chaque bloc vient du prix EEX du mois ou du trimestre,
+   la forme ne garde que la répartition à l'intérieur du bloc. */
+const FORME = {};
+for (const y of ANNEES) {
+  const f = D.scen[y].forme, s = Array(2 * P).fill(0), n = Array(2 * P).fill(0);
+  for (let h = 0; h < N; h++) { const i = 2 * PER[h] + PK[h]; s[i] += f[h]; n[i]++; }
+  const out = new Float64Array(N);
+  for (let h = 0; h < N; h++) { const i = 2 * PER[h] + PK[h]; out[h] = s[i] > 0 ? f[h] * n[i] / s[i] : 1; }
+  FORME[y] = out;
+}
+
+/* ============================================================
+   MOTEUR DE CALCUL
+   ------------------------------------------------------------
+   kind = "T1" : décision du 22/09 (prix et clients T1, 2e achat anticipé)
+   kind = "T2" : décision réelle du 01/12 (achats T1 de la décision figés,
+                 clients T2, spot ré-ancré sur les prix réels du 01/12,
+                 2e achat au prix réel)
+   kind = "R2" / "R3" : exercice hypothétique, on rejoue la méthode T1
+                 complète avec les prix et clients du 01/12 ou du 31/12
+   ============================================================ */
+
+/* Volumes, "100 %" et anomalies pour un nombre de clients donné */
+function contexte(d) {
+  const kR = d.nbRes * cfg.thRes * cfg.pRes / D.meta.ref.pRes;
+  const kP = d.nbPro * cfg.thPro * cfg.pPro / D.meta.ref.pPro;
+  const serie = (r, p) => { const a = new Float64Array(N); for (let h = 0; h < N; h++) a[h] = kR * r[h] + kP * p[h]; return a; };
+  const c = { kR, kP, L0: serie(D.normal.res1, D.normal.pro1), LS: {} };
+  for (const y of ANNEES) c.LS[y] = serie(D.scen[y].res1, D.scen[y].pro1);
+  const off = Array(P).fill(0), pk = Array(P).fill(0), eP = Array(P).fill(0);
+  let tot = 0, totOff = 0, totPk = 0;
+  for (let h = 0; h < N; h++) {
+    const p = PER[h], v = c.L0[h]; eP[p] += v; tot += v;
+    if (PK[h]) { pk[p] += v; totPk += v; } else { off[p] += v; totOff += v; }
+  }
+  // Couverture "100 %" : Base = moyenne hors pointe, Peak = supplément en pointe
+  const bloc = (o, k, e, ho, hk, ht) => {
+    const mo = o / ho, mp = k / hk;
+    return mp >= mo ? [mo, mp - mo] : [e / ht, 0];
+  };
+  c.base100P = []; c.peak100P = [];
+  for (let p = 0; p < P; p++) {
+    const [b, x] = bloc(off[p], pk[p], eP[p], HP[p] - HPK[p], HPK[p], HP[p]);
+    c.base100P.push(b); c.peak100P.push(x);
+  }
+  c.base100Q = []; c.peak100Q = []; c.eQ = [];
+  for (let q = 0; q < 4; q++) {
+    const sm = (a) => PER_Q[q].reduce((s, p) => s + a[p], 0);
+    const hT = sm(HP), hK = sm(HPK);
+    const [b, x] = bloc(sm(off), sm(pk), sm(eP), hT - hK, hK, hT);
+    c.base100Q.push(b); c.peak100Q.push(x); c.eQ.push(sm(eP));
+  }
+  c.eP = eP; c.vol0 = tot; c.moyAn = tot / N; c.offAn = totOff / (N - H_PK_AN); c.pkAn = totPk / H_PK_AN;
+
+  // Anomalies de volume des scénarios météo : par période, trimestre et année
+  c.anomP = {}; c.anomQ = {}; c.anomA = {};
+  for (const y of ANNEES) {
+    const s = Array(P).fill(0), L = c.LS[y];
+    for (let h = 0; h < N; h++) s[PER[h]] += L[h];
+    c.anomP[y] = s.map((v, p) => v / eP[p] - 1);
+    c.anomQ[y] = PER_Q.map((ps, q) => ps.reduce((a, p) => a + s[p], 0) / c.eQ[q] - 1);
+    c.anomA[y] = s.reduce((a, b) => a + b, 0) / tot - 1;
+  }
+  c.anomBrutA = Object.assign({}, c.anomA);                     // avant recentrage (affichage)
+  c.anomBrutP = Object.fromEntries(ANNEES.map((y) => [y, c.anomP[y].slice()]));
+  if (cfg.recentrer) {   // recentrage : la moyenne des scénarios = 0
+    const moy = (f) => ANNEES.reduce((a, y) => a + f(y), 0) / ANNEES.length;
+    for (let p = 0; p < P; p++) { const m = moy((y) => c.anomP[y][p]); for (const y of ANNEES) c.anomP[y][p] -= m; }
+    for (let q = 0; q < 4; q++) { const m = moy((y) => c.anomQ[y][q]); for (const y of ANNEES) c.anomQ[y][q] -= m; }
+    const m = moy((y) => c.anomA[y]); for (const y of ANNEES) c.anomA[y] -= m;
+  }
+  return c;
+}
+const anomProduit = (c, y, prod, k) => prod === "Cal" ? c.anomA[y] : prod === "Q" ? c.anomQ[y][k] : c.anomP[y][k];
+
+/* Prix d'un mois coté à une date (null si absent) */
+function prixMois(d, p) {
+  const m = (d.mois || []).find((x) => x[0] === CLES_MOIS[p]);
+  return m ? [+m[1], +m[2]] : null;
+}
+/* Prix par période : le mois s'il est coté, sinon le trimestre. Off-peak déduit. */
+function prixPeriodes(d) {
+  const Fb = [], Fp = [], src = [];
+  for (let p = 0; p < P; p++) {
+    const m = p < 6 ? prixMois(d, p) : null;
+    const v = m || [+d.q[PQ[p]][0], +d.q[PQ[p]][1]];
+    Fb.push(v[0]); Fp.push(v[1]); src.push(m ? "M" : "Q");
+  }
+  const Foff = Fb.map((b, p) => (b * HP[p] - Fp[p] * HPK[p]) / (HP[p] - HPK[p]));
+  return { Fb, Fp, Foff, src };
+}
+/* Prix fixé d'un produit (Cal, trimestre, mois) à une date */
+function prixProduit(l, d) {
+  const j = l.comp === "Base" ? 0 : 1;
+  if (l.prod === "Cal") return j ? +d.calPeak : +d.calBase;
+  if (l.prod === "Q") return +d.q[l.k][j];
+  const m = prixMois(d, l.k);
+  return m ? m[j] : +d.q[PQ[l.k]][j];
+}
+const nomProduit = (l) => l.prod === "Cal" ? "Cal-27" : l.prod === "Q" ? `Q${l.k + 1}-27` : `${CLES_MOIS[l.k]}-27`;
+/* Produit utilisé pour couvrir une période : le mois (janv.–juin) ou Q3 / Q4 */
+const produitPeriode = (p) => p < 6 ? { prod: "M", k: p, per: [p] } : { prod: "Q", k: p - 4, per: [p] };
+
+/* Traduit une stratégie en lignes d'achat. Les MW d'une étape sont calculés
+   sur la prévision de volume connue à sa date. */
+function achats(s, cT1, cT2) {
+  const L = [], dB = Array(P).fill(0), dP = Array(P).fill(0);
+  const add = (date, pr, comp, mw) => {
+    if (!mw || Math.abs(mw) < 1e-12) return;
+    L.push({ date, prod: pr.prod, k: pr.k, per: pr.per, comp, mw });
+    for (const p of pr.per) (comp === "Base" ? dB : dP)[p] += mw;
+  };
+  for (const e of s.etapes) {
+    if (e.type === "aucun") continue;
+    const cx = e.date === "T1" ? cT1 : cT2, d = e.date;
+    if (e.type === "mois") {
+      for (let p = 0; p < P; p++) {
+        const r = +e.ratio[p] || 0, pr = produitPeriode(p);
+        add(d, pr, "Base", r * cx.base100P[p]); add(d, pr, "Peak", r * cx.peak100P[p]);
+      }
+    } else if (e.type === "trimestres") {
+      for (let q = 0; q < 4; q++) {
+        const r = +e.ratio[q] || 0, pr = { prod: "Q", k: q, per: PER_Q[q] };
+        add(d, pr, "Base", r * cx.base100Q[q]); add(d, pr, "Peak", r * cx.peak100Q[q]);
+      }
+    } else if (e.type === "cal_base_peak") {
+      const pr = { prod: "Cal", k: 0, per: TOUTES };
+      add(d, pr, "Base", +e.ratio * cx.offAn); add(d, pr, "Peak", +e.ratio * (cx.pkAn - cx.offAn));
+    } else if (e.type === "cal_base") {
+      add(d, { prod: "Cal", k: 0, per: TOUTES }, "Base", +e.ratio * cx.moyAn);
+    } else if (e.type === "complement") {
+      // On complète jusqu'au total visé (par période), avec le type de produit e.prod
+      const r = e.ratio.map(Number), pt = e.prod || "mois";
+      if (pt === "mois") {
+        for (let p = 0; p < P; p++) {
+          const pr = produitPeriode(p), mb = r[p] * cx.base100P[p] - dB[p], mp = r[p] * cx.peak100P[p] - dP[p];
+          add(d, pr, "Base", mb); add(d, pr, "Peak", mp);
+        }
+      } else if (pt === "trimestres") {
+        for (let q = 0; q < 4; q++) {
+          const ps = PER_Q[q], rq = ps.reduce((a, p) => a + r[p] * cx.eP[p], 0) / cx.eQ[q];
+          const hb = ps.reduce((a, p) => a + dB[p] * HP[p], 0) / ps.reduce((a, p) => a + HP[p], 0);
+          const hk = ps.reduce((a, p) => a + dP[p] * HPK[p], 0) / ps.reduce((a, p) => a + HPK[p], 0);
+          const pr = { prod: "Q", k: q, per: ps };
+          add(d, pr, "Base", rq * cx.base100Q[q] - hb); add(d, pr, "Peak", rq * cx.peak100Q[q] - hk);
+        }
+      } else {
+        const ra = r.reduce((a, x, p) => a + x * cx.eP[p], 0) / cx.vol0, pr = { prod: "Cal", k: 0, per: TOUTES };
+        const hb = TOUTES.reduce((a, p) => a + dB[p] * HP[p], 0) / N, hk = TOUTES.reduce((a, p) => a + dP[p] * HPK[p], 0) / H_PK_AN;
+        if (pt === "cal_base_peak") { add(d, pr, "Base", ra * cx.offAn - hb); add(d, pr, "Peak", ra * (cx.pkAn - cx.offAn) - hk); }
+        else add(d, pr, "Base", ra * cx.moyAn - TOUTES.reduce((a, p) => a + dB[p] * HP[p] + dP[p] * HPK[p], 0) / N);
+      }
+    }
+  }
+  return L;
+}
+
+/* Décision T1 : "auto" = la stratégie que la règle du Board recommande à T1
+   (cohérent avec l'onglet T1) ; sinon le nom d'une stratégie choisie à la main
+   (par exemple celle réellement transmise le 22/09). */
+function nomDecisionT1() {
+  if (cfg.decisionT1 && cfg.decisionT1 !== "auto" && strats.some((s) => s.nom === cfg.decisionT1)) return cfg.decisionT1;
+  return calculer("T1").choix.nom;
+}
+const decisionAuto = () => !cfg.decisionT1 || cfg.decisionT1 === "auto" || !strats.some((s) => s.nom === cfg.decisionT1);
+
+function calculer(kind) {
+  const R = { kind };
+  // kind = "H2" : rétrospectif, chaque stratégie garde son propre achat T1
+  // (prix du 22/09) mais achète T2 au prix RÉEL du 01/12, comme si on le connaissait.
+  const dk = { T1: "T1", T2: "T2", R2: "T2", R3: "T3", H2: "T2" }[kind];
+  const reel = kind === "T2" || kind === "H2";
+  R.mode = reel ? "T2" : "T1"; R.date = dk; R.rejeu = kind === "R2" || kind === "R3";
+  const d1 = reel ? cfg.dates.T1 : cfg.dates[dk], dA = cfg.dates[dk];
+  R.d1 = d1; R.dA = dA;
+  const c1 = contexte(d1), c = reel ? contexte(dA) : c1;
+  R.c1 = c1; R.c = c;
+  const p1 = prixPeriodes(d1), pA = prixPeriodes(dA);
+  R.p1 = p1; R.pA = pA;
+  let coutProfil = 0;
+  for (let p = 0; p < P; p++) coutProfil += c.base100P[p] * HP[p] * pA.Fb[p] + c.peak100P[p] * HPK[p] * pA.Fp[p];
+  R.prixProfil = coutProfil / c.vol0;
+
+  const prime = +cfg.prime, b = +cfg.b, alpha = +cfg.alpha;
+  // Prix anticipé du 2e achat (mode T1) : F_T2 = F_T1 + alpha x (niveau du scénario - F_T1)
+  // Le niveau utilise l'anomalie au pas du produit : mois, trimestre ou année.
+  R.prixT2 = (l, y, choc) => {
+    const F = prixProduit(l, d1);
+    const niv = F * (1 - prime) * (1 + b * anomProduit(c1, y, l.prod, l.k)) * (1 + choc);
+    return F + alpha * (niv - F);
+  };
+
+  const chocs = [{ nom: "Météo seule", v: 0 }];
+  if (cfg.stress) for (const [nom, v] of cfg.chocs) chocs.push({ nom, v: +v });
+  R.chocs = chocs;
+  R.cas = [];
+  for (let k = 0; k < chocs.length; k++) {
+    for (const y of ANNEES) {
+      const f = FORME[y], spot = new Float64Array(N), m = (1 - prime) * (1 + chocs[k].v);
+      const fac = c.anomP[y].map((a) => m * (1 + b * a));
+      for (let h = 0; h < N; h++) { const p = PER[h]; spot[h] = (PK[h] ? pA.Fp[p] : pA.Foff[p]) * fac[p] * f[h]; }
+      R.cas.push({ y, c: k, choc: chocs[k].nom, v: chocs[k].v, spot });
+    }
+  }
+
+  // En mode T2, l'étape T1 de chaque stratégie est remplacée par celle de la
+  // décision T1 (figée) : on ne compare plus que la part T2.
+  const decision = kind === "T2" || kind === "H2"
+    ? (strats.find((s) => s.nom === nomDecisionT1()) || strats[0])
+    : (strats.find((s) => s.nom === cfg.decisionT1) || strats[0]);
+  R.decision = decision;
+  R.effective = (s) => kind === "T2" ? { nom: s.nom, etapes: [clone(decision.etapes[0]), clone(s.etapes[1])] } : s;
+  R.strats = strats.map((s) => evaluer(R.effective(s), R));
+  synthese(R);
+  return R;
+}
+
+function evaluer(s, R) {
+  const { c1, c, d1, dA } = R;
+  const L = achats(s, c1, c);
+  const eCov = Array(P).fill(0), livB = Array(P).fill(0), livP = Array(P).fill(0);
+  let eT1 = 0, cT1 = 0, eTot = 0, eT2 = 0, cT2fixe = 0;
+  for (const l of L) {
+    l.e = 0;
+    for (const p of l.per) { const e = l.mw * hP(p, l.comp); eCov[p] += e; l.e += e; (l.comp === "Base" ? livB : livP)[p] += l.mw; }
+    eTot += l.e;
+    if (l.date === "T1") { l.prix = prixProduit(l, d1); eT1 += l.e; cT1 += l.e * l.prix; }
+    else if (R.mode === "T2") { l.prix = prixProduit(l, dA); eT2 += l.e; cT2fixe += l.e * l.prix; }
+    else l.prix = null;   // anticipé, dépend du scénario
+  }
+  const cov = eCov.map((e, p) => e / c.eP[p]);
+  const covQ = PER_Q.map((ps, q) => ps.reduce((a, p) => a + eCov[p], 0) / c.eQ[q]);
+  const res = {
+    nom: s.nom, lignes: L, cov, covQ, covT1: eT1 / c.vol0, covTot: eTot / c.vol0,
+    coutT1: cT1, prixT1: eT1 > 0 ? cT1 / eT1 : null,
+    coutT2: R.mode === "T2" ? cT2fixe : null, prixT2: eT2 > 0 ? cT2fixe / eT2 : null,
+    // sur-couverture interdite : plus de 100 % du volume normal d'un trimestre
+    // (un produit trimestriel peut dépasser 100 % d'un de ses mois : simple information)
+    depasse: covQ.some((x) => x > 1.0005), depasseMois: cov.some((x) => x > 1.0005),
+    livB, livP, cas: [], mc: [],
+  };
+  const pv = +cfg.prixVente;
+  const prime = +cfg.prime, b = +cfg.b, alpha = +cfg.alpha;
+  const T2 = L.filter((l) => l.date === "T2");
+  for (const k of R.cas) {
+    const Ls = c.LS[k.y], spot = k.spot;
+    let vol = 0, cRes = 0, achat = 0, revente = 0;
+    const A = [0, 0, 0, 0];   // coût du résiduel par trimestre (Monte Carlo)
+    for (let h = 0; h < N; h++) {
+      const p = PER[h];
+      const r = Ls[h] - (livB[p] + (PK[h] ? livP[p] : 0));
+      const x = r * spot[h];
+      vol += Ls[h]; cRes += x; A[Q[h]] += x;
+      if (r > 0) achat += r; else revente -= r;
+    }
+    if (k.c === 0) {
+      // Coût du 2e achat = K0 + K1 x facteur de prix, par trimestre (linéaire)
+      const K0 = [0, 0, 0, 0], K1 = [0, 0, 0, 0];
+      for (const l of T2) for (const p of l.per) {
+        const e = l.mw * hP(p, l.comp), q = PQ[p];
+        if (R.mode === "T2") K0[q] += e * l.prix;
+        else {
+          const F = prixProduit(l, d1);
+          const niv = F * (1 - prime) * (1 + b * anomProduit(c1, k.y, l.prod, l.k));
+          K0[q] += e * F * (1 - alpha); K1[q] += e * alpha * niv;
+        }
+      }
+      res.mc.push({ y: k.y, vol, ca: vol * pv, cT1, A, K0, K1 });
+    }
+    let cT2 = 0;
+    if (R.mode === "T2") cT2 = cT2fixe;
+    else for (const l of T2) cT2 += l.e * R.prixT2(l, k.y, k.v);
+    const ca = vol * pv, marge = ca - cT1 - cT2 - cRes;
+    res.cas.push({ y: k.y, c: k.c, choc: k.choc, vol, ca, cT1, cT2, cRes, achat, revente, marge, mwh: marge / vol });
+  }
+  return res;
+}
+
+/* Marge espérée, pires cas, respect du plancher */
+function poids() {
+  const p = cfg.proba.map(Number); const sp = p.reduce((a, b) => a + b, 0) || 1;
+  const w = {}; ANNEES.forEach((y, i) => w[y] = p[i] / sp); return w;
+}
+function statsStrategie(s, R) {
+  const w = poids();
+  const base = s.cas.filter((k) => k.c === 0);
+  s.esp = base.reduce((a, k) => a + w[k.y] * k.mwh, 0);
+  s.pireMeteo = Math.min(...base.map((k) => k.mwh));
+  s.anneePire = base.find((k) => k.mwh === s.pireMeteo).y;
+  s.pireChoc = R.chocs.map((_, c) => Math.min(...s.cas.filter((k) => k.c === c).map((k) => k.mwh)));
+  s.pire = Math.min(...s.cas.map((k) => k.mwh));
+  s.ok = s.pire >= +cfg.plancher && !s.depasse;   // la sur-couverture est interdite
+}
+/* Aucune stratégie au-dessus du plancher : on prend le meilleur pire cas.
+   Des pires cas à moins de 0,01 €/MWh l'un de l'autre sont considérés égaux
+   (écart invisible à l'arrondi) : on départage alors par la marge espérée. */
+function plusProtectrice(pool) {
+  const max = Math.max(...pool.map((x) => x.pire));
+  return pool.filter((x) => x.pire >= max - 0.01).reduce((a, b) => (b.esp > a.esp ? b : a));
+}
+function synthese(R) {
+  for (const s of R.strats) statsStrategie(s, R);
+  const ok = R.strats.filter((s) => s.ok);
+  const permises = R.strats.filter((s) => !s.depasse);
+  const pool = permises.length ? permises : R.strats;
+  if (ok.length) { R.choix = ok.reduce((a, b) => (b.esp > a.esp ? b : a)); R.choixRegle = true; }
+  else { R.choix = plusProtectrice(pool); R.choixRegle = false; }
+  R.ref = R.strats.find((s) => s.covTot === 0) || null;
+  R.sens = [-15, -10, -5, -2, 0, 2, 3, 4, 5, 6].map((f) => {
+    const okf = R.strats.filter((s) => s.pire >= f && !s.depasse);
+    const c = okf.length ? okf.reduce((a, b) => (b.esp > a.esp ? b : a)) : null;
+    return { f, n: okf.length, c };
+  });
+}
+
+/* ---------- Quel produit ? même énergie, produits différents ---------- */
+function ratiosPeriodes(e) {
+  if (e.type === "mois") return e.ratio.map(Number);
+  if (e.type === "trimestres") return PQ.map((q) => +e.ratio[q]);
+  return Array(P).fill(+e.ratio || 0);
+}
+function convertirEtape(e, type, cx) {
+  if (e.type === "aucun") return clone(e);
+  if (e.type === "complement") return { date: e.date, type: "complement", prod: type, ratio: e.ratio.slice() };
+  const r = ratiosPeriodes(e);
+  if (type === "mois") return { date: e.date, type, ratio: r };
+  if (type === "trimestres") return { date: e.date, type, ratio: PER_Q.map((ps, q) => ps.reduce((a, p) => a + r[p] * cx.eP[p], 0) / cx.eQ[q]) };
+  return { date: e.date, type, ratio: r.reduce((a, x, p) => a + x * cx.eP[p], 0) / cx.vol0 };
+}
+function comparerProduits(R, iStrat) {
+  const s0 = R.effective(strats[iStrat]);
+  const variantes = [["mois", "Mois (janv.–juin) + Q3, Q4"], ["trimestres", "Trimestres Q1 à Q4"], ["cal_base_peak", "Cal-27 Base + Peak"], ["cal_base", "Cal-27 Base plat"]];
+  return variantes.map(([type, lib]) => {
+    const s = { nom: lib, etapes: s0.etapes.map((e, i) =>
+      (R.mode === "T2" && i === 0) ? clone(e) : convertirEtape(e, type, e.date === "T1" ? R.c1 : R.c)) };
+    const r = evaluer(s, R); statsStrategie(r, R); r.type = type;
+    return r;
+  });
+}
+
+/* ---------- Sous-stratégies : produit de l'achat T1 x produit de l'achat T2 ----------
+   Mêmes pourcentages (même énergie), 4 produits possibles à chaque achat -> 16 combinaisons.
+   En décision réelle T2, l'achat T1 est figé : seules 4 options restent. */
+const PRODUITS = [["mois", "Mois"], ["trimestres", "Trimestres"], ["cal_base_peak", "Cal B+P"], ["cal_base", "Cal plat"]];
+const LIB_PROD = Object.fromEntries(PRODUITS);
+function meilleure(liste) {
+  const ok = liste.filter((x) => x.ok), perm = liste.filter((x) => !x.depasse);
+  if (ok.length) return { best: ok.reduce((a, b) => (b.esp > a.esp ? b : a)), regle: true };
+  const pool = perm.length ? perm : liste;
+  return { best: plusProtectrice(pool), regle: false };
+}
+function sousStrategies(R, iStrat) {
+  const s0 = R.effective(strats[iStrat]);
+  const fige = R.kind === "T2";
+  const opts = (i) => (fige && i === 0) || s0.etapes[i].type === "aucun" ? [null] : PRODUITS.map((p) => p[0]);
+  const liste = [];
+  for (const a of opts(0)) for (const b of opts(1)) {
+    const etapes = s0.etapes.map((e, i) => {
+      const t = i === 0 ? a : b;
+      return t ? convertirEtape(e, t, e.date === "T1" ? R.c1 : R.c) : clone(e);
+    });
+    const r = evaluer({ nom: s0.nom, etapes }, R); statsStrategie(r, R);
+    r.p1 = a; r.p2 = b; liste.push(r);
+  }
+  return Object.assign({ liste, a: opts(0), b: opts(1), nom: strats[iStrat].nom }, meilleure(liste));
+}
+
+/* Anticipation faite à T1 du prix T2 de chaque produit (Base) */
+function anticipationT1() {
+  const d1 = cfg.dates.T1, c1 = contexte(d1);
+  const prime = +cfg.prime, b = +cfg.b, alpha = +cfg.alpha;
+  const prods = [{ prod: "Cal", k: 0 }].concat([0, 1, 2, 3].map((q) => ({ prod: "Q", k: q })),
+    [0, 1, 2, 3, 4, 5].filter((p) => prixMois(d1, p)).map((p) => ({ prod: "M", k: p })));
+  return prods.map((x) => {
+    const l = Object.assign({ comp: "Base" }, x), F = prixProduit(l, d1);
+    const v = ANNEES.map((y) => F + alpha * (F * (1 - prime) * (1 + b * anomProduit(c1, y, l.prod, l.k)) - F));
+    return { l, nom: nomProduit(l), F, v, min: Math.min(...v), max: Math.max(...v) };
+  });
+}
+
+/* ============================================================
+   MONTE CARLO : météo (tirée parmi les années) x niveau de prix
+   ------------------------------------------------------------
+   Pour chaque tirage :
+     - une année météo, tirée selon les probabilités des scénarios ;
+     - un facteur de prix par trimestre, log-normal de moyenne 1 :
+         ln f_q = sc x Zc + sq x Zq - (sc² + sq²)/2
+       sc = volatilité annuelle x racine(horizon)  (commun à l'année)
+       sq = écart propre à chaque trimestre
+   La marge est linéaire en f : ventes - T1 - Σq (K0 + K1 f_q) - Σq A_q f_q
+   ============================================================ */
+const HORIZON = { T1: 0.78, T2: 0.58, T3: 0.50 };   // années jusqu'au milieu de 2027
+function rng(seed) {   // générateur pseudo-aléatoire reproductible (mulberry32)
+  let a = seed >>> 0;
+  return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+function monteCarlo(R) {
+  const n = Math.max(200, Math.min(50000, Math.round(+cfg.mc.n || 5000)));
+  const horizon = HORIZON[R.date] ?? 0.75;
+  const sc = (+cfg.mc.sigma) * Math.sqrt(horizon), sq = +cfg.mc.sigmaQ;
+  const rand = rng(+cfg.mc.seed || 1);
+  const gauss = () => { let u = 0; while (u === 0) u = rand(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rand()); };
+  const p = cfg.proba.map(Number), sp = p.reduce((a, x) => a + x, 0) || 1;
+  const cum = []; p.reduce((a, x, i) => (cum[i] = a + x / sp), 0);
+  const out = R.strats.map(() => new Float64Array(n));
+  const idx = R.strats.map((s) => Object.fromEntries(s.mc.map((m) => [m.y, m])));
+  const corr = -(sc * sc + sq * sq) / 2;
+  for (let i = 0; i < n; i++) {
+    const u = rand(); let j = cum.findIndex((c) => u <= c); if (j < 0) j = cum.length - 1;
+    const y = ANNEES[j], zc = gauss();
+    const f = [0, 1, 2, 3].map(() => Math.exp(sc * zc + sq * gauss() + corr));
+    R.strats.forEach((s, k) => {
+      const m = idx[k][y];
+      let cout = m.cT1;
+      for (let q = 0; q < 4; q++) cout += m.K0[q] + (m.K1[q] + m.A[q]) * f[q];
+      out[k][i] = (m.ca - cout) / m.vol;
+    });
+  }
+  const plancher = +cfg.plancher;
+  const stats = R.strats.map((s, k) => {
+    const v = Array.from(out[k]).sort((a, b) => a - b);
+    const q = (x) => v[Math.min(n - 1, Math.max(0, Math.floor(x * (n - 1))))];
+    const n5 = Math.max(1, Math.floor(0.05 * n));
+    return {
+      nom: s.nom, s, moy: v.reduce((a, x) => a + x, 0) / n, med: q(0.5),
+      p1: q(0.01), p5: q(0.05), p95: q(0.95), p99: q(0.99),
+      cvar5: v.slice(0, n5).reduce((a, x) => a + x, 0) / n5,
+      pPl: v.filter((x) => x < plancher).length / n, pNeg: v.filter((x) => x < 0).length / n,
+    };
+  });
+  // Règle du Board version Monte Carlo : P5 >= plancher, meilleure moyenne
+  const ok = stats.filter((x) => x.p5 >= plancher && !x.s.depasse);
+  const choix = ok.length ? ok.reduce((a, b) => (b.moy > a.moy ? b : a))
+    : stats.filter((x) => !x.s.depasse).reduce((a, b) => (b.p5 > a.p5 ? b : a), stats[0]);
+  return { n, sc, sq, horizon, stats, choix, regle: ok.length > 0 };
+}
+
+/* ============================================================
+   POSITION OUVERTE DU 01/01/2027 (guidelines §5)
+   ============================================================ */
+function cmMeteo(tr, tn, g) {
+  const s = +D.meta.seuil || 15;
+  if (tr < s && tn < s) return 1 + g * (tn - tr);
+  if (tr < s && tn >= s) return 1 + g * (s - tr);
+  if (tn < s && tr >= s) return 1 + g * (tn - s);
+  return 1;
+}
+function positionOuverte(Rpo, iStrat, source) {
+  const d3 = cfg.dates.T3;
+  const kR = d3.nbRes * cfg.thRes * cfg.pRes / D.meta.ref.pRes;
+  const kP = d3.nbPro * cfg.thPro * cfg.pPro / D.meta.ref.pPro;
+  const s = Rpo.strats[iStrat], t3 = cfg.t3 || {};
+  const L = [];
+  for (let h = 0; h < 24; h++) {
+    let load;
+    const r = D.normal.res1[h], p = D.normal.pro1[h];
+    if (source === "T3" && D.jour1 && t3.temp && t3.temp.length === 24) {
+      load = kR * r * cmMeteo(+t3.temp[h], D.jour1.tn[h], D.jour1.gR[h]) +
+             kP * p * cmMeteo(+t3.temp[h], D.jour1.tn[h], D.jour1.gP[h]);
+    } else if (source === "normale" || source === "T3") load = kR * r + kP * p;
+    else load = kR * D.scen[source].res1[h] + kP * D.scen[source].pro1[h];
+    // 01/01/2027 = période janvier ; Peak livré de 8h à 20h (vendredi, férié inclus)
+    const couv = s.livB[0] + (PK[h] ? s.livP[0] : 0);
+    const sol = t3.solaireOn ? +(t3.solaire[h] || 0) : 0;
+    L.push({ h, load, couv, sol, open: load - couv - sol, tn: D.jour1 ? D.jour1.tn[h] : null, tp: t3.temp ? +t3.temp[h] : null });
+  }
+  return L;
+}
+/* ============================================================
+   GRAPHIQUES (SVG)
+   ============================================================ */
+function ticks(min, max, n = 5) {
+  if (min === max) { min -= 1; max += 1; }
+  const span = max - min, step0 = span / n, mag = Math.pow(10, Math.floor(Math.log10(step0)));
+  const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => span / s <= n) || 10 * mag;
+  const t = [], lo = Math.floor(min / step + 1e-9) * step, hi = Math.ceil(max / step - 1e-9) * step;
+  for (let v = lo; v <= hi + step * 1e-9; v += step) t.push(+v.toFixed(10));
+  return t;
+}
+const tip = $("tip");
+function showTip(ev, html) {
+  tip.innerHTML = html; tip.style.display = "block";
+  const x = Math.min(ev.clientX + 14, window.innerWidth - tip.offsetWidth - 8);
+  const y = Math.min(ev.clientY + 14, window.innerHeight - tip.offsetHeight - 8);
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+}
+function hideTip() { tip.style.display = "none"; }
+function bindTips(root) {
+  root.querySelectorAll("[data-tip]").forEach((el) => {
+    el.addEventListener("mousemove", (e) => showTip(e, el.getAttribute("data-tip")));
+    el.addEventListener("mouseleave", hideTip);
+  });
+}
+
+function barresGroupees(el, groupes, series, valeurs, opts) {
+  // valeurs[g][s]
+  const W = 900, H = 330, m = { l: 48, r: 12, t: 12, b: 46 };
+  const all = valeurs.flat().concat([0, opts.ligne ?? 0]);
+  const tk = ticks(Math.min(...all), Math.max(...all));
+  const y0 = tk[0], y1 = tk[tk.length - 1];
+  const Y = (v) => m.t + (H - m.t - m.b) * (1 - (v - y0) / (y1 - y0));
+  const gw = (W - m.l - m.r) / groupes.length, inner = gw * 0.78, bw = Math.max(3, inner / series.length - 2);
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opts.titre)}">`;
+  for (const t of tk) s += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(t)}" y2="${Y(t)}" stroke="var(--grid)" stroke-width="1"/>` +
+    `<text x="${m.l - 6}" y="${Y(t) + 4}" text-anchor="end" font-size="11" fill="var(--muted)">${fr(t, Math.abs(t) < 10 && t % 1 ? 1 : 0)}</text>`;
+  s += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--axis)" stroke-width="1.2"/>`;
+  groupes.forEach((g, i) => {
+    const x0 = m.l + i * gw + (gw - inner) / 2;
+    series.forEach((ser, j) => {
+      const v = valeurs[i][j], x = x0 + j * (bw + 2), ya = Y(Math.max(v, 0)), yb = Y(Math.min(v, 0));
+      const h = Math.max(1, yb - ya), r = Math.min(4, bw / 2, h);
+      const path = v >= 0
+        ? `M${x},${yb} V${ya + r} Q${x},${ya} ${x + r},${ya} H${x + bw - r} Q${x + bw},${ya} ${x + bw},${ya + r} V${yb} Z`
+        : `M${x},${ya} V${yb - r} Q${x},${yb} ${x + r},${yb} H${x + bw - r} Q${x + bw},${yb} ${x + bw},${yb - r} V${ya} Z`;
+      s += `<path d="${path}" fill="${SERIES[j % 4]}" data-tip="${esc(`<div class='t'>${g.long}</div>Météo ${ser} : <b>${fr(v)} €/MWh</b>`)}"/>`;
+    });
+    s += `<text x="${m.l + i * gw + gw / 2}" y="${H - m.b + 16}" text-anchor="middle" font-size="11.5" fill="var(--ink-2)" font-weight="${g.best ? 700 : 400}">${esc(g.court)}</text>`;
+  });
+  if (opts.ligne != null) {
+    s += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(opts.ligne)}" y2="${Y(opts.ligne)}" stroke="var(--critical)" stroke-width="1.5" stroke-dasharray="5 4"/>` +
+      `<text x="${m.l + 4}" y="${Y(opts.ligne) - 5}" font-size="11" fill="var(--critical)" stroke="var(--surface)" stroke-width="4" paint-order="stroke">Plancher ${fr(opts.ligne, 1)}</text>`;
+  }
+  s += `<text x="${m.l}" y="${H - 6}" font-size="11" fill="var(--muted)">€/MWh</text></svg>`;
+  el.innerHTML = s; bindTips(el);
+}
+
+function nuage(el, pts, plancher) {
+  const W = 560, H = 360, m = { l: 52, r: 18, t: 16, b: 44 };
+  const xs = pts.map((p) => p.x).concat([plancher]), ys = pts.map((p) => p.y);
+  const pad = (a, b) => { const d = (b - a) * 0.08 || 1; return [a - d, b + d]; };
+  const [xa, xb] = pad(Math.min(...xs), Math.max(...xs)), [ya, yb] = pad(Math.min(...ys), Math.max(...ys));
+  const tx = ticks(xa, xb, 6), ty = ticks(ya, yb, 5);
+  const X = (v) => m.l + (W - m.l - m.r) * (v - tx[0]) / (tx[tx.length - 1] - tx[0]);
+  const Y = (v) => m.t + (H - m.t - m.b) * (1 - (v - ty[0]) / (ty[ty.length - 1] - ty[0]));
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Marge espérée en fonction du pire cas">`;
+  for (const t of ty) s += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(t)}" y2="${Y(t)}" stroke="var(--grid)"/><text x="${m.l - 6}" y="${Y(t) + 4}" text-anchor="end" font-size="11" fill="var(--muted)">${fr(t, 1)}</text>`;
+  for (const t of tx) s += `<line x1="${X(t)}" x2="${X(t)}" y1="${m.t}" y2="${H - m.b}" stroke="var(--grid)"/><text x="${X(t)}" y="${H - m.b + 16}" text-anchor="middle" font-size="11" fill="var(--muted)">${fr(t, Math.abs(t) < 10 && t % 1 ? 1 : 0)}</text>`;
+  s += `<rect x="${X(plancher)}" y="${m.t}" width="${Math.max(0, W - m.r - X(plancher))}" height="${H - m.t - m.b}" fill="var(--good)" opacity="0.06"/>`;
+  s += `<line x1="${X(plancher)}" x2="${X(plancher)}" y1="${m.t}" y2="${H - m.b}" stroke="var(--critical)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+  s += `<text x="${X(plancher) + 5}" y="${m.t + 12}" font-size="11" fill="var(--critical)">Plancher</text>`;
+  s += `<text x="${(W + m.l) / 2}" y="${H - 6}" text-anchor="middle" font-size="11.5" fill="var(--ink-2)">Pire cas (€/MWh)</text>`;
+  s += `<text transform="translate(13 ${(H - m.b + m.t) / 2}) rotate(-90)" text-anchor="middle" font-size="11.5" fill="var(--ink-2)">Marge espérée (€/MWh)</text>`;
+  const boites = [];
+  const place = (cx, cy, txt) => {
+    const w = txt.length * 7 + 4, h = 13;
+    const essais = [[9, -7, "start"], [9, 15, "start"], [-9, -7, "end"], [-9, 15, "end"], [0, -12, "middle"], [0, 22, "middle"]];
+    for (const [dx, dy, a] of essais) {
+      const x0 = a === "start" ? cx + dx : a === "end" ? cx + dx - w : cx - w / 2, y0 = cy + dy - 11;
+      const bx = { x0, y0, x1: x0 + w, y1: y0 + h };
+      const libre = boites.every((o) => bx.x1 < o.x0 || bx.x0 > o.x1 || bx.y1 < o.y0 || bx.y0 > o.y1) &&
+        pts.every((q) => { const qx = X(q.x), qy = Y(q.y); return qx < bx.x0 - 4 || qx > bx.x1 + 4 || qy < bx.y0 - 4 || qy > bx.y1 + 4; });
+      if (libre) { boites.push(bx); return { x: cx + dx, y: cy + dy, a }; }
+    }
+    const [dx, dy, a] = essais[0]; return { x: cx + dx, y: cy + dy, a };
+  };
+  const ordre = pts.slice().sort((a, b) => (b.best - a.best) || (a.x - b.x));
+  const pos = new Map(ordre.map((p) => [p, place(X(p.x), Y(p.y), p.court)]));
+  for (const p of pts) {
+    const col = p.best ? "var(--good)" : "var(--s1)";
+    const lp = pos.get(p);
+    s += `<g data-tip="${esc(`<div class='t'>${p.nom}</div>Marge espérée : <b>${fr(p.y)}</b><br>Pire cas : <b>${fr(p.x)}</b> €/MWh`)}" style="cursor:pointer" data-i="${p.i}">` +
+      `<circle cx="${X(p.x)}" cy="${Y(p.y)}" r="14" fill="transparent"/>` +
+      `<circle cx="${X(p.x)}" cy="${Y(p.y)}" r="${p.best ? 7 : 5.5}" fill="${col}" stroke="var(--surface)" stroke-width="2"/>` +
+      `<text x="${lp.x}" y="${lp.y}" text-anchor="${lp.a}" font-size="11.5" fill="var(--ink)" font-weight="${p.best ? 700 : 500}" stroke="var(--surface)" stroke-width="3" paint-order="stroke">${esc(p.court)}</text></g>`;
+  }
+  s += `</svg>`;
+  el.innerHTML = s; bindTips(el);
+  el.querySelectorAll("g[data-i]").forEach((g) => g.addEventListener("click", () => { sel = +g.dataset.i; rendre(); }));
+}
+
+function lignes(el, series, unite) {
+  // series: [{nom, couleur, valeurs[12], pointille}]
+  const W = 560, H = 280, m = { l: 52, r: 12, t: 12, b: 32 };
+  const all = series.flatMap((s) => s.valeurs);
+  const tk = ticks(Math.min(...all) * 0.97, Math.max(...all) * 1.02);
+  const Y = (v) => m.t + (H - m.t - m.b) * (1 - (v - tk[0]) / (tk[tk.length - 1] - tk[0]));
+  const X = (i) => m.l + (W - m.l - m.r) * i / 11;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img">`;
+  for (const t of tk) s += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(t)}" y2="${Y(t)}" stroke="var(--grid)"/><text x="${m.l - 6}" y="${Y(t) + 4}" text-anchor="end" font-size="11" fill="var(--muted)">${fr(t, 0)}</text>`;
+  MOIS.forEach((mo, i) => { s += `<text x="${X(i)}" y="${H - 10}" text-anchor="middle" font-size="10.5" fill="var(--muted)">${mo}</text>`; });
+  for (const se of series) {
+    s += `<polyline fill="none" stroke="${se.couleur}" stroke-width="2" stroke-linejoin="round" ${se.pointille ? 'stroke-dasharray="5 4"' : ""} points="${se.valeurs.map((v, i) => `${X(i)},${Y(v)}`).join(" ")}"/>`;
+  }
+  // zones de survol par mois (tooltip avec toutes les séries)
+  for (let i = 0; i < 12; i++) {
+    const html = `<div class='t'>${MOIS[i]} 2027</div>` + series.map((se) => `${se.nom} : <b>${fr(se.valeurs[i], 0)}</b> ${unite}`).join("<br>");
+    s += `<rect x="${X(i) - (W - m.l - m.r) / 22}" y="${m.t}" width="${(W - m.l - m.r) / 11}" height="${H - m.t - m.b}" fill="transparent" data-tip="${esc(html)}"/>`;
+  }
+  s += `<text x="${m.l + 4}" y="${m.t + 12}" font-size="11" fill="var(--muted)" stroke="var(--surface)" stroke-width="3" paint-order="stroke">${unite}</text></svg>`;
+  el.innerHTML = s; bindTips(el);
+}
+function barresPO(el, L) {
+  const W = 900, H = 300, m = { l: 48, r: 12, t: 12, b: 34 };
+  const v = L.map((l) => l.open), tk = ticks(Math.min(0, ...v), Math.max(0, ...v));
+  const Y = (x) => m.t + (H - m.t - m.b) * (1 - (x - tk[0]) / (tk[tk.length - 1] - tk[0]));
+  const bw = (W - m.l - m.r) / 24;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Position ouverte heure par heure">`;
+  for (const t of tk) s += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(t)}" y2="${Y(t)}" stroke="var(--grid)"/><text x="${m.l - 6}" y="${Y(t) + 4}" text-anchor="end" font-size="11" fill="var(--muted)">${fr(t, 0)}</text>`;
+  L.forEach((l, i) => {
+    const x = m.l + i * bw + 2, w = bw - 4, y0 = Y(0), y1 = Y(l.open), top = Math.min(y0, y1), h = Math.max(1, Math.abs(y1 - y0));
+    s += `<rect x="${x}" y="${top}" width="${w}" height="${h}" rx="3" fill="${l.open > 0 ? "var(--s1)" : "var(--s2)"}" data-tip="${esc(`<div class='t'>${String(l.h).padStart(2, "0")}h – ${String(l.h + 1).padStart(2, "0")}h</div>Consommation : ${fr(l.load, 1)} MW<br>Couvert : ${fr(l.couv, 1)} MW<br>Solaire : ${fr(l.sol, 1)} MW<br><b>Position : ${fr(l.open, 1)} MW</b> (${l.open > 0 ? "achat" : "revente"})`)}"/>`;
+    if (i % 2 === 0) s += `<text x="${x + w / 2}" y="${H - m.b + 15}" text-anchor="middle" font-size="10.5" fill="var(--muted)">${l.h}h</text>`;
+  });
+  s += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--axis)" stroke-width="1.2"/>`;
+  s += `<text x="${m.l + 4}" y="${m.t + 12}" font-size="11" fill="var(--muted)" stroke="var(--surface)" stroke-width="3" paint-order="stroke">MW</text></svg>`;
+  el.innerHTML = s; bindTips(el);
+}
+
+/* Barres sur les 24 heures du 01/01 (prix ou volumes). couleur(i, v) et tipHtml(i) par heure. */
+function barres24(el, valeurs, couleur, tipHtml, unite, aria) {
+  const W = 900, H = 250, m = { l: 52, r: 12, t: 14, b: 34 };
+  const tk = ticks(Math.min(0, ...valeurs), Math.max(0, ...valeurs));
+  const Y = (x) => m.t + (H - m.t - m.b) * (1 - (x - tk[0]) / (tk[tk.length - 1] - tk[0]));
+  const bw = (W - m.l - m.r) / 24;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(aria)}">`;
+  for (const t of tk) s += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(t)}" y2="${Y(t)}" stroke="var(--grid)"/><text x="${m.l - 6}" y="${Y(t) + 4}" text-anchor="end" font-size="11" fill="var(--muted)">${fr(t, 0)}</text>`;
+  valeurs.forEach((v, i) => {
+    const x = m.l + i * bw + 2, w = bw - 4, y0 = Y(0), y1 = Y(v), top = Math.min(y0, y1), h = Math.max(1, Math.abs(y1 - y0));
+    s += `<rect x="${x}" y="${top}" width="${w}" height="${h}" rx="3" fill="${couleur(i, v)}" data-tip="${esc(tipHtml(i))}"/>`;
+    if (i % 2 === 0) s += `<text x="${x + w / 2}" y="${H - m.b + 15}" text-anchor="middle" font-size="10.5" fill="var(--muted)">${i}h</text>`;
+  });
+  s += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--axis)" stroke-width="1.2"/>`;
+  s += `<text x="${m.l + 4}" y="${m.t + 12}" font-size="11" fill="var(--muted)" stroke="var(--surface)" stroke-width="3" paint-order="stroke">${unite}</text></svg>`;
+  el.innerHTML = s; bindTips(el);
+}
+
+function telechargerCSV() {
+  const f = (x) => (Math.round(x * 100) / 100).toString().replace(".", ",");
+  let csv = "Heure;Consommation prévue (MW);Livraison couverte (MW);Solaire (MW);Position ouverte (MW);Court ou long\n";
+  for (const l of poLignes) csv += `${String(l.h).padStart(2, "0")}:00 - ${String(l.h + 1).padStart(2, "0")}:00;${f(l.load)};${f(l.couv)};${f(l.sol)};${f(l.open)};${l.open > 0 ? "Court (achat)" : "Long (revente)"}\n`;
+  const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = "position_ouverte_01012027.csv";
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+
+/* ============================================================
+   PANNEAU DE PARAMÈTRES (selon l'onglet)
+   ============================================================ */
+const GROUPES = [
+  { titre: "Décision prise à T1", tabs: ["T2", "T3"], open: true, special: "decision" },
+  { titre: "Portefeuille clients", open: false, special: "clients" },
+  { titre: "Prix EEX", open: true, special: "eex" },
+  { titre: "Prévisions du 31/12 pour le 01/01/2027", tabs: ["T3"], open: true, special: "t3" },
+  { titre: "Marché et scénarios", open: false, champs: [
+    ["prime", "Prime de risque", 0.005, "fraction (0,03 = 3 %)"], ["alpha", "Alpha (2e achat anticipé)", 0.05, "0 à 1"],
+    ["b", "Pente prix-volume b", 0.05, `estimée : ${fr(D.meta.b)} (R² ${fr(D.meta.r2)})`],
+  ], extra: "recentrer" },
+  { titre: "Règles du Board", open: false, champs: [
+    ["prixVente", "Prix de vente", 0.5, "€/MWh"], ["margeCible", "Marge cible", 0.5, "€/MWh"], ["plancher", "Plancher (pire cas)", 0.5, "€/MWh"],
+  ]},
+  { titre: "Tests de stress (crise énergétique)", open: false, special: "chocs" },
+  { titre: "Probabilités des scénarios météo", open: false, special: "proba" },
+];
+
+function champ(key, label, step, unit, value, defVal) {
+  const id = "f_" + key;
+  return `<div class="field"><label for="${id}">${label}${unit ? `<div class="unit">${unit}</div>` : ""}</label>` +
+    `<input type="number" id="${id}" data-k="${key}" step="${step}" value="${value}" class="${cl(value, defVal)}"></div>`;
+}
+const cl = (v, d) => (Number(v) !== Number(d) ? "changed" : "");
+
+function construirePanneau() {
+  if (cfg.tab === "REC") {
+    $("config").innerHTML = `<details class="group" open><summary>Décision prise à T1</summary>` +
+      `<div class="hint">Stratégie dont les achats T1 ont été faits le 22/09. « Auto » reprend la recommandation de l'onglet T1 ; choisis une stratégie à la main seulement si la décision réellement transmise était différente.</div><div class="field wide"><select id="f_decision">` +
+      optionsDecision() + `</select></div></details>` +
+      `<div class="hint" style="margin-top:12px">Page de synthèse. Les autres paramètres se modifient dans les onglets T1, T2 et T3.</div>`;
+    $("f_decision").addEventListener("change", (e) => { cfg.decisionT1 = e.target.value; planifier(); });
+    appliquerVerrou();
+    return;
+  }
+  if (cfg.tab === "RES") {
+    const da = D.meta.da || {};
+    $("config").innerHTML = `<details class="group" open><summary>Résultat du day-ahead</summary>` +
+      `<div class="hint">Prix publiés par le professeur pour le groupe ${esc(da.groupe || "")} (config.py, DA_0101). ` +
+      `Notre ordre est recalculé comme le bon de commande envoyé : stratégie retenue le 01/12, prévision du 31/12, ` +
+      `intervalle 1 si le prix est négatif (solaire arrêté), intervalle 2 sinon.</div></details>` +
+      `<div class="hint" style="margin-top:12px">Les prix EEX, les clients et les prévisions du 31/12 se modifient dans les onglets T1, T2 et T3.</div>`;
+    appliquerVerrou();
+    return;
+  }
+  const dk = cfg.tab, d = cfg.dates[dk], d0 = DEFAULT_CFG.dates[dk];
+  let h = "";
+  for (const g of GROUPES) {
+    if (g.tabs && !g.tabs.includes(dk)) continue;
+    h += `<details class="group" ${g.open ? "open" : ""}><summary>${g.titre}${g.special === "eex" || g.special === "clients" ? ` du ${LIB_DATE[dk]}` : ""}</summary>`;
+    if (g.champs) for (const [k, l, st, u] of g.champs) h += champ(k, l, st, u, cfg[k], DEFAULT_CFG[k]);
+    if (g.extra === "recentrer") h += `<label class="check"><input type="checkbox" id="f_recentrer" ${cfg.recentrer ? "checked" : ""}> Recentrer les anomalies sur leur moyenne</label>`;
+    if (g.special === "decision") {
+      h += `<div class="hint">Ses achats T1 sont figés (MW calculés sur la prévision T1, payés au prix du 22/09). « Auto » reprend la recommandation de l'onglet T1.</div>`;
+      h += `<div class="field wide"><select id="f_decision">` +
+        optionsDecision() + `</select></div>`;
+    }
+    if (g.special === "clients") {
+      h += champ("d_nbRes", "Clients RES1", 1000, "", d.nbRes, d0.nbRes) + champ("d_nbPro", "Clients PRO1", 100, "", d.nbPro, d0.nbPro);
+      h += `<div class="hint">Theta et puissance sont communs aux trois dates.</div>`;
+      for (const [k, l, st, u] of [["thRes", "Theta RES1", 0.0001, ""], ["pRes", "Puissance RES1", 1, "kVA"], ["thPro", "Theta PRO1", 0.0001, ""], ["pPro", "Puissance PRO1", 1, "kVA"]])
+        h += champ(k, l, st, u, cfg[k], DEFAULT_CFG[k]);
+    }
+    if (g.special === "eex") {
+      h += `<div class="hint">Settlements EEX France du ${LIB_DATE[dk]}/2026, €/MWh.</div>`;
+      h += `<div class="qgrid"><span class="h"></span><span class="h">Base</span><span class="h">Peak</span>`;
+      h += `<span>Cal-27</span><input type="number" step="0.01" data-eex="cal-0" value="${d.calBase}" class="${cl(d.calBase, d0.calBase)}">` +
+           `<input type="number" step="0.01" data-eex="cal-1" value="${d.calPeak}" class="${cl(d.calPeak, d0.calPeak)}">`;
+      for (let q = 0; q < 4; q++) h += `<span>Q${q + 1}-27</span>` + [0, 1].map((j) =>
+        `<input type="number" step="0.01" data-eex="q${q}-${j}" value="${d.q[q][j]}" class="${cl(d.q[q][j], d0.q[q][j])}">`).join("");
+      (d.mois || []).forEach(([m, b, p], i) => {
+        const m0 = (d0.mois || [])[i] || [m, b, p];
+        h += `<span>${m}-27</span>` + [b, p].map((v, j) =>
+          `<input type="number" step="0.01" data-eex="m${i}-${j}" value="${v}" class="${cl(v, m0[1 + j])}">`).join("");
+      });
+      h += `</div>`;
+    }
+    if (g.special === "t3") {
+      const d3 = cfg.dates.T3;
+      h += `<label class="check"><input type="checkbox" id="f_solaire" ${cfg.t3.solaireOn ? "checked" : ""}> Déduire la production solaire (${fr(+cfg.t3.mwc, 0)} MWc)</label>`;
+      h += `<div class="hint">Température prévue (°C) et production solaire (MWh), heure par heure :</div><div class="qgrid">` +
+        `<span class="h">Heure</span><span class="h">Temp.</span><span class="h">Solaire</span>` +
+        cfg.t3.temp.map((t, i) => `<span>${String(i).padStart(2, "0")}h</span>` +
+          `<input type="number" step="0.5" data-t3t="${i}" value="${t}" class="${cl(t, DEFAULT_CFG.t3.temp[i])}">` +
+          `<input type="number" step="0.5" data-t3s="${i}" value="${cfg.t3.solaire[i]}" class="${cl(cfg.t3.solaire[i], DEFAULT_CFG.t3.solaire[i])}">`).join("") + `</div>`;
+    }
+    if (g.special === "chocs") {
+      h += `<label class="check"><input type="checkbox" id="f_stress" ${cfg.stress ? "checked" : ""}> Inclure les crises dans le pire cas</label>`;
+      h += `<div class="hint">Prix spot 2027 × (1 + choc). Les achats déjà faits restent à prix figé.</div>`;
+      cfg.chocs.forEach(([nom, v], i) => {
+        h += `<div class="choc-row"><input type="text" data-choc="${i}-n" value="${esc(nom)}"><input type="number" step="5" data-choc="${i}-v" value="${Math.round(v * 1000) / 10}" title="%"><button class="icon" data-chocdel="${i}" title="Supprimer">×</button></div>`;
+      });
+      h += `<button id="addChoc">+ Ajouter un choc</button>`;
+    }
+    if (g.special === "proba") {
+      h += `<div class="hint">Pondération de la marge espérée (normalisée automatiquement). À T2, à réviser avec justification (guidelines §4.2).</div>`;
+      ANNEES.forEach((y, i) => { h += champ("proba" + i, "Météo " + y, 0.05, "", cfg.proba[i], DEFAULT_CFG.proba[i]); });
+    }
+    h += `</details>`;
+  }
+  h += `<div class="hint" style="margin-top:14px">Données : load normale ${D.meta.annees_ref.join(", ")}, météo ${ANNEES.join(", ")}. Pour changer les années ou les données, modifie config.py et relance le tableau de bord.</div>`;
+  $("config").innerHTML = h;
+
+  const num = (inp) => { const v = parseFloat(inp.value); return isFinite(v) ? v : null; };
+  if ($("f_decision")) $("f_decision").addEventListener("change", (e) => { cfg.decisionT1 = e.target.value; planifier(); });
+  $("config").querySelectorAll("input[data-k]").forEach((inp) => inp.addEventListener("input", () => {
+    const k = inp.dataset.k, v = num(inp); if (v == null) return;
+    let def;
+    if (k.startsWith("proba")) { cfg.proba[+k.slice(5)] = v; def = DEFAULT_CFG.proba[+k.slice(5)]; }
+    else if (k.startsWith("d_")) { cfg.dates[dk][k.slice(2)] = v; def = DEFAULT_CFG.dates[dk][k.slice(2)]; }
+    else { cfg[k] = v; def = DEFAULT_CFG[k]; }
+    inp.classList.toggle("changed", v !== Number(def));
+    planifier();
+  }));
+  $("config").querySelectorAll("input[data-eex]").forEach((inp) => inp.addEventListener("input", () => {
+    const v = num(inp); if (v == null) return;
+    const dd = cfg.dates[dk], d00 = DEFAULT_CFG.dates[dk];
+    const [a, j] = inp.dataset.eex.split("-");
+    let def;
+    if (a === "cal") { if (j === "0") { dd.calBase = v; def = d00.calBase; } else { dd.calPeak = v; def = d00.calPeak; } }
+    else if (a[0] === "q") { dd.q[+a.slice(1)][+j] = v; def = d00.q[+a.slice(1)][+j]; }
+    else { const i = +a.slice(1); dd.mois[i][1 + +j] = v; def = ((d00.mois || [])[i] || [])[1 + +j]; }
+    inp.classList.toggle("changed", v !== Number(def));
+    planifier();
+  }));
+  $("config").querySelectorAll("input[data-t3t], input[data-t3s]").forEach((inp) => inp.addEventListener("input", () => {
+    const v = num(inp); if (v == null) return;
+    if (inp.dataset.t3t != null) { cfg.t3.temp[+inp.dataset.t3t] = v; inp.classList.toggle("changed", v !== Number(DEFAULT_CFG.t3.temp[+inp.dataset.t3t])); }
+    else { cfg.t3.solaire[+inp.dataset.t3s] = v; inp.classList.toggle("changed", v !== Number(DEFAULT_CFG.t3.solaire[+inp.dataset.t3s])); }
+    planifier(false);
+  }));
+  if ($("f_solaire")) $("f_solaire").addEventListener("change", (e) => { cfg.t3.solaireOn = e.target.checked; planifier(false); });
+  $("f_recentrer").addEventListener("change", (e) => { cfg.recentrer = e.target.checked; planifier(); });
+  $("f_stress").addEventListener("change", (e) => { cfg.stress = e.target.checked; chocVue = 0; planifier(); });
+  $("config").querySelectorAll("input[data-choc]").forEach((inp) => inp.addEventListener("input", () => {
+    const [i, t] = inp.dataset.choc.split("-");
+    if (t === "n") cfg.chocs[+i][0] = inp.value;
+    else { const v = num(inp); if (v == null) return; cfg.chocs[+i][1] = v / 100; }
+    planifier();
+  }));
+  $("config").querySelectorAll("button[data-chocdel]").forEach((bt) => bt.addEventListener("click", () => {
+    cfg.chocs.splice(+bt.dataset.chocdel, 1); chocVue = 0; construirePanneau(); planifier();
+  }));
+  $("addChoc").addEventListener("click", () => { cfg.chocs.push(["Nouveau choc", 0.3]); construirePanneau(); planifier(); });
+  appliquerVerrou();
+}
+
+function optionsDecision() {
+  const auto = decisionAuto(), rec = calculer("T1").choix.nom;
+  return `<option value="auto" ${auto ? "selected" : ""}>Auto : recommandation T1 (${esc(rec)})</option>` +
+    strats.map((s) => `<option value="${esc(s.nom)}" ${!auto && s.nom === cfg.decisionT1 ? "selected" : ""}>${esc(s.nom)}</option>`).join("");
+}
+
+/* ============================================================
+   ÉDITEUR DE STRATÉGIES
+   ============================================================ */
+function construireEditeur(R) {
+  sel = Math.min(sel, strats.length - 1);
+  $("chips").innerHTML = strats.map((s, i) =>
+    `<button class="chip ${i === sel ? "on" : ""} ${R.strats[i] === R.choix ? "best" : ""}" data-i="${i}" title="${esc(s.nom)}">${esc(s.nom)}</button>`).join("") +
+    `<button class="chip" id="addStrat">+ Nouvelle</button>`;
+  $("chips").querySelectorAll("button[data-i]").forEach((b) => b.addEventListener("click", () => { sel = +b.dataset.i; rendre(); }));
+  $("addStrat").addEventListener("click", () => {
+    strats.push({ nom: `S${strats.length + 3} Ma stratégie`, etapes: [
+      { date: "T1", type: "mois", ratio: Array(8).fill(0.5) }, { date: "T2", type: "mois", ratio: Array(8).fill(0.3) }] });
+    sel = strats.length - 1; planifier(true);
+  });
+
+  const s = strats[sel];
+  let h = `<div class="namebar"><input type="text" id="sName" value="${esc(s.nom)}">` +
+    `<button id="sDup">Dupliquer</button><button id="sDel">Supprimer</button>` +
+    (DEFAULT_STRATS.find((d) => d.nom === s.nom) ? `<button id="sRes">Valeurs d'origine</button>` : "") + `</div>`;
+  const figeT1 = R.mode === "T2";
+  if (figeT1) h += `<div class="hint" style="margin:0">Décision réelle du 01/12 : la ligne T1 est celle de « ${esc(R.decision.nom)} », figée. Seule la part T2 se modifie ici.</div>`;
+  s.etapes.forEach((e0, k) => {
+    const fige = figeT1 && k === 0;
+    const e = fige ? R.decision.etapes[0] : e0;
+    h += `<div class="step ${e.type === "mois" || e.type === "complement" ? "mois" : ""}" ${fige ? 'style="opacity:.6" inert' : ""}><span class="d">${e.date}${fige ? " 🔒" : ""}</span><select data-st="${k}">` +
+      Object.entries(TYPES).map(([v, l]) => `<option value="${v}" ${v === e.type ? "selected" : ""}>${l}</option>`).join("") + `</select>`;
+    if (e.type === "mois" || e.type === "complement") {
+      h += e.ratio.map((v, p) => `<label class="qcol">${e.type === "complement" ? "Total " : ""}${NOMS_P[p]} (%)<input type="number" step="5" min="0" max="100" data-sr="${k}-${p}" value="${Math.round(v * 1000) / 10}"></label>`).join("");
+    } else if (e.type === "trimestres") {
+      h += e.ratio.map((v, q) => `<label class="qcol">Q${q + 1} (%)<input type="number" step="5" min="0" max="100" data-sr="${k}-${q}" value="${Math.round(v * 1000) / 10}"></label>`).join("");
+    } else if (e.type === "aucun") {
+      h += `<span class="single">Rien n'est acheté à cette date.</span>`;
+    } else {
+      const lab = e.type === "cal_base" ? "% de la puissance moyenne annuelle" : "% de la consommation annuelle";
+      h += `<span class="single">${lab}<input type="number" step="5" min="0" max="100" data-sr="${k}-x" value="${Math.round((+e.ratio || 0) * 1000) / 10}"></span>`;
+    }
+    h += `</div>`;
+  });
+  if (s.etapes.some((e) => e.type === "complement")) h += `<div class="hint" style="margin:0">« Compléter jusqu'à » : à T2, on achète ce qui manque pour atteindre le total visé, sur la prévision de volume du jour. Si les clients baissent, on achète moins : pas de sur-couverture.</div>`;
+  h += `<div id="covBox"></div>`;
+  $("editor").innerHTML = h;
+  majCouverture(R);
+  brancherEditeur(s);
+  appliquerVerrou();
+}
+
+function majCouverture(R) {
+  const r = R.strats[sel]; if (!$("covBox")) return;
+  let h = `<div class="hint" style="margin:4px 0">Couverture du volume normal${R.mode === "T2" ? " (prévision du 01/12)" : ""} :</div>`;
+  h += `<div class="cov">` + r.cov.map((c, p) => `<div><span>${NOMS_P[p]}</span><b>${pct(c, 0)}</b></div>`).join("") + `</div>`;
+  h += `<div class="cov" style="margin-top:8px"><div><span>Acheté à T1</span><b>${pct(r.covT1, 0)}</b></div><div><span>Total</span><b>${pct(r.covTot, 0)}</b></div>` +
+    `<div><span>Coût T1</span><b>${fr(r.coutT1 / 1e6, 2)} M€</b></div><div><span>Prix moyen T1</span><b>${r.prixT1 ? fr(r.prixT1) : "–"}</b></div>` +
+    (R.mode === "T2" ? `<div><span>Coût T2 (prix réels)</span><b>${fr(r.coutT2 / 1e6, 2)} M€</b></div><div><span>Prix moyen T2</span><b>${r.prixT2 ? fr(r.prixT2) : "–"}</b></div>` : "") +
+    `</div>`;
+  if (r.depasse) h += `<div class="warnbox" style="margin-top:8px">⚠ Au moins un trimestre dépasse 100 % du volume normal : les guidelines interdisent la sur-couverture.</div>`;
+  else if (r.depasseMois) h += `<div class="warnbox" style="margin-top:8px">ℹ Un mois dépasse 100 % (produit trimestriel ou Cal plus large que la consommation de ce mois) : le surplus sera revendu au spot.</div>`;
+  if (r.lignes.some((l) => l.mw < -1e-9)) h += `<div class="warnbox" style="margin-top:8px">ℹ Certains achats sont négatifs : la stratégie revend à T2 une partie de ce qui a été acheté à T1.</div>`;
+  $("covBox").innerHTML = h;
+}
+
+function brancherEditeur(s) {
+  $("sName").addEventListener("change", (e) => {
+    const ancien = s.nom; s.nom = e.target.value || s.nom;
+    if (cfg.decisionT1 === ancien) cfg.decisionT1 = s.nom;
+    construirePanneau(); planifier(true);
+  });
+  $("sDup").addEventListener("click", () => { const c = clone(s); c.nom = s.nom + " (copie)"; strats.splice(sel + 1, 0, c); sel++; construirePanneau(); planifier(true); });
+  $("sDel").addEventListener("click", () => { if (strats.length > 1) { strats.splice(sel, 1); sel = Math.max(0, sel - 1); construirePanneau(); planifier(true); } });
+  if ($("sRes")) $("sRes").addEventListener("click", () => { strats[sel] = clone(DEFAULT_STRATS.find((d) => d.nom === s.nom)); planifier(true); });
+  $("editor").querySelectorAll("select[data-st]").forEach((se) => se.addEventListener("change", () => {
+    const e = s.etapes[+se.dataset.st], t = se.value;
+    const v = Array.isArray(e.ratio) ? e.ratio[0] : +e.ratio || 0;
+    e.type = t;
+    e.ratio = t === "mois" ? Array(8).fill(v) : t === "trimestres" ? Array(4).fill(v) : t === "aucun" ? 0 : t === "complement" ? Array(8).fill(0.9) : v;
+    if (t === "complement") e.prod = "mois"; else delete e.prod;
+    planifier(true);
+  }));
+  $("editor").querySelectorAll("input[data-sr]").forEach((inp) => inp.addEventListener("input", () => {
+    const v = parseFloat(inp.value); if (!isFinite(v)) return;
+    const [k, i] = inp.dataset.sr.split("-"), e = s.etapes[+k];
+    if (i === "x") e.ratio = v / 100; else e.ratio[+i] = v / 100;
+    planifier(false);
+  }));
+}
+
+/* ============================================================
+   RENDU
+   ============================================================ */
+let R = null, Rpo = null, premier = true;
+function kindActif() {
+  if (cfg.tab === "T1") return "T1";
+  if (cfg.tab === "T2") return cfg.sub === "R2" ? "R2" : "T2";
+  if (cfg.tab === "T3") return cfg.rejeuT3 ? "R3" : null;
+  return null;
+}
+
+function rendre(rebuildEditor = true) {
+  const tab = cfg.tab, kind = kindActif();
+  const tokens = new Set([tab]); if (kind === "R3") tokens.add("R3");
+  document.querySelectorAll("[data-show]").forEach((el) => { el.hidden = !el.dataset.show.split(" ").some((t) => tokens.has(t)); });
+  document.querySelectorAll("#tabs button").forEach((b) => { b.classList.toggle("on", b.dataset.tab === tab); b.disabled = !ongletDispo(b.dataset.tab); });
+  document.querySelectorAll("#subT2 button").forEach((b) => b.classList.toggle("on", b.dataset.sub === cfg.sub));
+  $("rejeuT3").checked = !!cfg.rejeuT3;
+  const dec = tab === "T3" ? 1 : 0;
+  $("n_scen").textContent = 2 + dec; $("n_strat").textContent = 3 + dec; $("n_res").textContent = 4 + dec; $("n_mc").textContent = 5;
+
+  if (tab === "REC") {
+    R = null; Rpo = null; sauver();
+    $("tabHint").innerHTML = "La stratégie retenue en une page : ce qu'on a décidé à chaque date, ce qu'on a acheté, et pourquoi.";
+    rendreRecap();
+    return;
+  }
+  if (tab === "RES") {
+    R = null; Rpo = calculer("T2"); sauver();
+    $("tabHint").innerHTML = "Ce que notre ordre day-ahead a réellement acheté et revendu le 01/01/2027, aux prix publiés par le professeur, et la marge de la journée.";
+    rendreResultatDA();
+    return;
+  }
+  R = kind ? calculer(kind) : null;
+  Rpo = tab === "T3" ? calculer("T2") : null;
+  sauver();
+
+  const decNom = nomDecisionT1();
+  $("tabHint").innerHTML = {
+    T1: `Décision du 22/09 : uniquement l'information connue ce jour-là. Le prix du 2e achat (T2) est inconnu : il est anticipé dans chaque scénario.`,
+    T2: `Décision réelle du 01/12 : les achats T1 de <b>${esc(decNom)}</b> sont figés. On choisit la part T2 avec les prix réels du 01/12.`,
+    R2: `<b>Exercice hypothétique</b> : toute la méthode T1 est rejouée avec les prix et clients du 01/12. Ce n'est pas la décision réelle : ne pas l'utiliser pour justifier T1.`,
+    T3: `31/12 : plus rien à décider pour la couverture. On calcule la position ouverte du 01/01/2027, à acheter ou revendre au day-ahead.`,
+  }[tab === "T2" ? kind : tab];
+
+  rendreDonnees();
+  if (tab === "T2") rendreAnticipation();
+  if (tab === "T3") rendrePositionOuverte();
+  if (!R) return;
+  if (premier) { sel = Math.max(0, R.strats.indexOf(R.choix)); premier = false; }
+  rendreScenarios(R);
+  rendreResultats(R);
+  if (rebuildEditor) construireEditeur(R); else majCouverture(R);
+  document.querySelectorAll("#chips .chip[data-i]").forEach((b) => b.classList.toggle("best", R.strats[+b.dataset.i] === R.choix));
+  rendreSousStrategies(R);
+  if (tab === "T2") rendreRetro();
+  if (tab !== "T3") rendreMC(R);
+  rendreDetails(R);
+}
+
+/* ---------- Étape 1 : données ---------- */
+function rendreDonnees() {
+  const tab = cfg.tab, d = cfg.dates[tab], d1 = cfg.dates.T1;
+  const c = contexte(d), c1 = tab === "T1" ? c : contexte(d1);
+  const pr = prixPeriodes(d);
+  let cout = 0;
+  for (let p = 0; p < P; p++) cout += c.base100P[p] * HP[p] * pr.Fb[p] + c.peak100P[p] * HPK[p] * pr.Fp[p];
+  cout /= c.vol0;
+  const dv = (a, b) => tab === "T1" ? "" : ` · ${b ? (a / b - 1 > 0 ? "+" : "") + pct(a / b - 1) : ""} vs T1`;
+  $("t_donnees").textContent = `Données du ${LIB_DATE[tab]}/2026`;
+  $("kpisData").innerHTML = [
+    ["Clients RES1 · PRO1", `${fr(+d.nbRes, 0)} · ${fr(+d.nbPro, 0)}`, tab === "T1" ? "prévision commerciale du 22/09" : `RES1${dv(+d.nbRes, +d1.nbRes)} · PRO1${dv(+d.nbPro, +d1.nbPro).replace(" · ", " ")}`],
+    ["Volume normal 2027", fr(c.vol0, 0) + " MWh", `${fr(c.moyAn, 1)} MW en moyenne${dv(c.vol0, c1.vol0)}`],
+    ["Cal-27 Base / Peak", `${fr(+d.calBase)} / ${fr(+d.calPeak)}`, `€/MWh${dv(+d.calBase, +d1.calBase)}`],
+    ["Prix d'achat de notre profil", fr(cout) + " €/MWh", `si on achetait aujourd'hui toute la conso normale en mois + Q3/Q4 · vendu ${fr(+cfg.prixVente)} → marge max ≈ ${fr(+cfg.prixVente - cout)}`],
+  ].map(([l, v, det]) => `<div class="kpi"><div class="lab">${l}</div><div class="val" style="font-size:19px">${v}</div><div class="det">${det}</div></div>`).join("");
+
+  // Tableau des prix aux dates connues
+  const ds = ["T1", "T2", "T3"].slice(0, ["T1", "T2", "T3"].indexOf(tab) + 1).filter((t) => cfg.dates[t]);
+  const lignesPrix = [["Cal-27", (x, j) => j ? x.calPeak : x.calBase]]
+    .concat([0, 1, 2, 3].map((q) => [`Q${q + 1}-27`, (x, j) => x.q[q][j]]))
+    .concat(CLES_MOIS.map((m, p) => [`${m}-27`, (x, j) => { const v = prixMois(x, p); return v ? v[j] : null; }]));
+  const var_ = (v) => v == null ? "–" : `<span class="${v < 0 ? "neg" : ""}">${v > 0 ? "+" : ""}${fr(v, 1)} %</span>`;
+  let t = `<table><thead><tr><th rowspan="2">Produit</th><th colspan="${ds.length * 2 - 1}" style="text-align:center">Base</th><th colspan="${ds.length * 2 - 1}" style="text-align:center">Peak</th></tr><tr>`;
+  for (let j = 0; j < 2; j++) ds.forEach((x, i) => { t += `<th class="num">${LIB_DATE[x]}</th>` + (i > 0 ? `<th class="num">vs T1</th>` : ""); });
+  t += `</tr></thead><tbody>`;
+  lignesPrix.forEach(([nom, get], i) => {
+    if (i === 5) t += `<tr><td colspan="${1 + 2 * (ds.length * 2 - 1)}" style="text-align:left;color:var(--muted);font-size:12px">Mois cotés (janvier à juin)</td></tr>`;
+    t += `<tr><td>${nom}</td>`;
+    for (let j = 0; j < 2; j++) {
+      const v0 = get(d1, j);
+      ds.forEach((x, k) => {
+        const v = get(cfg.dates[x], j);
+        t += `<td style="${x === tab ? "font-weight:700" : ""}">${v == null ? "–" : fr(+v)}</td>` + (k > 0 ? `<td>${v == null || v0 == null ? "–" : var_((v / v0 - 1) * 100)}</td>` : "");
+      });
+    }
+    t += `</tr>`;
+  });
+  // Cohérence mois / trimestres / Cal (moyennes pondérées par les heures)
+  const moyM = (ps, j) => { let s = 0, n = 0; for (const p of ps) { const v = prixMois(d, p); if (!v) return null; const hh = j ? HPK[p] : HP[p]; s += v[j] * hh; n += hh; } return s / n; };
+  const q1 = moyM([0, 1, 2], 0), q2 = moyM([3, 4, 5], 0);
+  let wb = 0; for (let q = 0; q < 4; q++) wb += +d.q[q][0] * PER_Q[q].reduce((a, p) => a + HP[p], 0); wb /= N;
+  $("tblPrix").innerHTML = t + `</tbody></table><div class="hint">` +
+    (q1 != null ? `Contrôle : moyenne Jan–Mar ${fr(q1)} contre Q1 ${fr(+d.q[0][0])} · Avr–Juin ${fr(q2)} contre Q2 ${fr(+d.q[1][0])} · moyenne des trimestres ${fr(wb)} contre Cal ${fr(+d.calBase)} (Base, €/MWh).` : "") + `</div>`;
+  $("d_prix").innerHTML = `Settlements EEX France, €/MWh. EEX ne cote que les prochains mois : de janvier à juin 2027 à chaque date. ` +
+    `On couvre donc janvier–juin avec les mois (plus précis que Q1/Q2, l'hiver coûte bien plus cher que mars), et juillet–décembre avec Q3 et Q4.` +
+    (tab === "T1" ? "" : ` En gras : les prix du ${LIB_DATE[tab]}.`);
+
+  if (tab === "T1") {
+    const mensuel = (arr) => { const v = new Array(12).fill(0); for (let h = 0; h < N; h++) v[MO[h]] += arr[h]; return v; };
+    lignes($("chVol"), [{ nom: "Normale", couleur: "var(--ink-2)", valeurs: mensuel(c.L0), pointille: true }]
+      .concat(ANNEES.map((y, j) => ({ nom: "Météo " + y, couleur: SERIES[j], valeurs: mensuel(c.LS[y]) }))), "MWh");
+    $("legVol").innerHTML = `<span><i class="line" style="background:var(--ink-2)"></i>Normale</span>` + ANNEES.map((y, j) => `<span><i class="line" style="background:${SERIES[j]}"></i>Météo ${y}</span>`).join("");
+  }
+}
+
+/* ---------- T2 : anticipation contre réalité ---------- */
+function rendreAnticipation() {
+  const d1 = cfg.dates.T1, d2 = cfg.dates.T2;
+  const A = anticipationT1();
+  let t = `<table><thead><tr><th>Produit (Base)</th><th>Prix T1 22/09</th><th>Anticipé à T1 (min – max)</th><th>Réel 01/12</th><th>Variation</th><th>Dans la fourchette</th></tr></thead><tbody>`;
+  for (const a of A) {
+    const r = prixProduit(a.l, d2), dans = r >= a.min - 1e-9 && r <= a.max + 1e-9;
+    t += `<tr><td>${a.nom}</td><td>${fr(a.F)}</td><td>${fr(a.min)} – ${fr(a.max)}</td><td>${fr(r)}</td><td>${mt((r / a.F - 1) * 100, 1)} %</td>` +
+      `<td><span class="badge ${dans ? "ok" : "ko"}">${dans ? "✓" : "✗"}</span></td></tr>`;
+  }
+  $("tblAnticip").innerHTML = t + `</tbody></table>`;
+  const cal = A[0], reel = +d2.calBase, sigma = +d1.calBase * 0.20 * Math.sqrt(70 / 365);
+  const dans = reel >= cal.min && reel <= cal.max;
+  $("anticipText").innerHTML =
+    `Le Cal-27 Base est passé de <b>${fr(+d1.calBase)}</b> à <b>${fr(reel)} €/MWh</b> (${mt((reel / +d1.calBase - 1) * 100, 1)} %). ` +
+    `Nos anticipations allaient de ${fr(cal.min)} à ${fr(cal.max)} : le prix réel est <b>${dans ? "dans" : "en dehors de"}</b> cette fourchette. ` +
+    `Écart-type de plausibilité CRE (20 %/an sur 70 jours) : ±${fr(sigma)} €/MWh ; le mouvement réel est ${Math.abs(reel - +d1.calBase) <= sigma ? "à moins de" : "au-delà de"} 1σ. ` +
+    (dans ? "" : `Les scénarios météo ne font bouger le prix que de quelques €/MWh : la baisse vient d'ailleurs (gaz, CO₂, nucléaire, demande). C'est le risque de niveau de prix que mesure le Monte Carlo. `) +
+    `Dans la décision réelle du 01/12, le spot est ré-ancré sur les prix réels du 01/12.`;
+}
+
+/* ---------- Scénarios ---------- */
+function rendreScenarios(R) {
+  const sigma = +R.d1.calBase * 0.20 * Math.sqrt(70 / 365);
+  const boites = [
+    [`Prime de risque`, pct(+cfg.prime, 0), `Le forward contient une prime que l'on paie pour se couvrir. Spot attendu = forward × (1 − prime). C'est pourquoi « tout au spot » (S0) gagne un peu en moyenne : il ne paie pas la prime, mais il prend tout le risque.`],
+    [`Pente prix-volume b`, fr(+cfg.b), `Plus froid que la normale → plus de consommation → prix plus haut. Régression des anomalies journalières d'hiver : +1 % de consommation ≈ +${fr(+cfg.b)} % de prix (R² ${fr(D.meta.r2)}, ${D.meta.n} jours).`],
+    R.mode === "T1"
+      ? [`Alpha (2e achat)`, fr(+cfg.alpha), `Le prix du 01/12 est inconnu. Dans chaque scénario, le forward fait ${pct(+cfg.alpha, 0)} du chemin entre le prix d'aujourd'hui et le niveau du scénario. Plausibilité CRE : ±1σ ≈ ±${fr(sigma, 1)} €/MWh sur le Cal.`]
+      : [`Alpha`, "non utilisé", `Le prix du 2e achat est connu : c'est le settlement réel du 01/12.`],
+    [`Prédire les prix T2 et T3 ?`, "Non", `On ne parie pas sur la hausse ou la baisse du marché. On mesure le risque : 4 scénarios météo, des chocs de crise (${cfg.chocs.map((c) => (c[1] > 0 ? "+" : "") + pct(c[1], 0)).join(", ")}) et le Monte Carlo (étape 5).`],
+  ];
+  $("explainParams").innerHTML = boites.map(([t, v, d]) => `<div>${t}<b class="big">${v}</b>${d}</div>`).join("") +
+    `<div style="grid-column:1/-1">Spot 2027 (heure h) = prix EEX du mois ou du trimestre × (1 − prime) × (1 + b × anomalie de consommation du mois) × forme horaire historique de l'année météo. Chaque année météo 2022 à 2025 donne un scénario.</div>`;
+  $("s_scen").textContent = `${ANNEES.length} années météo, probabilités ${cfg.proba.map((p) => pct(+p, 0)).join(" / ")}`;
+
+  const w = poids();
+  let t = `<table><thead><tr><th>Scénario</th><th>Proba</th><th>Volume (MWh)</th><th>vs normale</th>${[1, 2, 3, 4].map((q) => `<th>Anom. Q${q}${cfg.recentrer ? "*" : ""}</th>`).join("")}<th>Spot moyen</th>${R.mode === "T1" ? "<th>Cal Base T2 anticipé</th>" : ""}</tr></thead><tbody>`;
+  for (const y of ANNEES) {
+    const vol = R.c.LS[y].reduce((a, b) => a + b, 0), k = R.cas.find((x) => x.c === 0 && x.y === y);
+    const sm = k.spot.reduce((a, b) => a + b, 0) / N;
+    t += `<tr><td>Météo ${y}</td><td>${pct(w[y], 0)}</td><td>${fr(vol, 0)}</td><td>${mt((vol / R.c.vol0 - 1) * 100)} %</td>` +
+      R.c.anomQ[y].map((a) => `<td>${mt(a * 100)} %</td>`).join("") + `<td>${fr(sm)}</td>` +
+      (R.mode === "T1" ? `<td>${fr(R.prixT2({ prod: "Cal", k: 0, comp: "Base" }, y, 0))}</td>` : "") + `</tr>`;
+  }
+  $("tblScen").innerHTML = t + `</tbody></table>${cfg.recentrer ? `<div class="hint">* Anomalies recentrées : leur moyenne sur les scénarios vaut 0 (le prix moyen des scénarios reste ancré sur le forward).</div>` : ""}`;
+  {
+    const y0 = ANNEES[ANNEES.length - 1], F = R.pA.Fb[0], an = R.c.anomP[y0][0];
+    const niv = F * (1 - +cfg.prime) * (1 + +cfg.b * an);
+    const brut = ANNEES.map((y) => R.c.anomBrutA[y]), mBrut = brut.reduce((a2, x) => a2 + x, 0) / brut.length;
+    $("explSpot").innerHTML =
+      `<p><b>1. L'équation.</b> Pour chaque heure de 2027 et chaque année météo, on fabrique un prix spot :</p>` +
+      `<div class="formule">Spot(h) = Prix EEX du mois × (1 − prime) × (1 + b × anomalie du mois) × forme horaire(h)</div>` +
+      `<p>• <b>Prix EEX du mois</b> : le prix auquel le marché vend aujourd'hui l'électricité de ce mois (janvier ${fr(F)} €/MWh en Base). Juillet–décembre : Q3 ou Q4. Pour les heures de pointe on part du prix Peak, pour les autres du prix « hors pointe » qu'on en déduit.<br>` +
+      `• <b>× (1 − prime)</b> : le forward contient une prime d'assurance de ${pct(+cfg.prime, 0)}. Le spot attendu est donc un peu plus bas que le forward.<br>` +
+      `• <b>× (1 + b × anomalie)</b> : si ce mois est plus froid que la normale, on consomme plus (anomalie positive) et le prix monte, ${fr(+cfg.b)} fois plus vite (b). Plus doux : l'inverse.<br>` +
+      `• <b>× forme horaire</b> : la répartition des prix dans le mois, copiée sur l'année historique (plus cher à 19h qu'à 4h du matin, plus cher en semaine). Elle ne change pas la moyenne du mois.</p>` +
+      `<p><b>Exemple</b> : janvier, météo ${y0}, anomalie ${mt(an * 100)} % → ${fr(F)} × ${fr(1 - +cfg.prime, 2)} × (1 + ${fr(+cfg.b)} × ${fr(an, 4)}) = <b>${fr(niv)} €/MWh</b> de moyenne sur le mois, puis réparti heure par heure par la forme.</p>` +
+      `<p><b>2. Les anomalies.</b> L'anomalie d'un scénario, c'est l'écart entre sa consommation et la consommation à température normale : +2 % veut dire « 2 % de plus que la normale ». ` +
+      `La colonne « vs normale » du tableau donne cet écart sur l'année, sans retouche.</p>` +
+      `<p><b>3. Pourquoi les recentrer ?</b> Sans retouche, nos 4 années météo consomment en moyenne ${mt(mBrut * 100)} % par rapport à la normale` +
+      (mBrut < -0.002 ? ` : les années ${ANNEES[0]}–${ANNEES[ANNEES.length - 1]} ont été plus chaudes que la « température normale » de référence (réchauffement). Utilisées telles quelles, ces anomalies donneraient à tous les scénarios un prix plus bas que le forward`
+        : mBrut > 0.002 ? ` : ces années ont été plus froides que la normale. Utilisées telles quelles, ces anomalies donneraient à tous les scénarios un prix plus haut que le forward`
+        : `. Ici l'écart moyen est faible, mais par principe on le retire quand même : sinon le prix moyen des scénarios s'écarterait du forward`) +
+      `, comme si on pariait que le marché se trompe. ` +
+      `On retire donc à chaque anomalie la moyenne des 4 scénarios (c'est le « recentrage ») : les scénarios gardent leurs différences entre eux (${(() => { const o = ANNEES.slice().sort((u, v) => R.c.anomA[u] - R.c.anomA[v]); return `${o[0]} reste le plus doux, ${o[o.length - 1]} le plus froid`; })()}), mais leur moyenne vaut 0, et le prix moyen des scénarios retombe sur forward × (1 − prime). ` +
+      `Seul le calcul du prix utilise les anomalies recentrées : les volumes consommés, eux, ne sont pas modifiés.</p>` +
+      `<p><b>4. Pourquoi Q3 vaut 0,00 %</b> : l'été, on ne chauffe pas (au-dessus de 15 °C), donc la météo ne change pas la consommation. Les 4 années ont la même anomalie, et une fois recentrée elle vaut 0.</p>`;
+  }
+
+  const spotM = (k) => { const s = new Array(12).fill(0), n = new Array(12).fill(0); for (let h = 0; h < N; h++) { s[MO[h]] += k.spot[h]; n[MO[h]]++; } return s.map((v, i) => v / n[i]); };
+  const fwdM = MOIS.map((_, m) => R.pA.Fb[m < 6 ? m : m < 9 ? 6 : 7]);
+  lignes($("chSpot"), R.cas.filter((k) => k.c === 0).map((k, j) => ({ nom: "Météo " + k.y, couleur: SERIES[j], valeurs: spotM(k) }))
+    .concat([{ nom: "EEX Base", couleur: "var(--ink-2)", valeurs: fwdM, pointille: true }]), "€/MWh");
+  $("legSpot").innerHTML = ANNEES.map((y, j) => `<span><i class="line" style="background:${SERIES[j]}"></i>Météo ${y}</span>`).join("") +
+    `<span><i class="line" style="background:var(--ink-2)"></i>Prix EEX Base (mois, Q3, Q4)</span>`;
+  $("s_strat").textContent = R.mode === "T2" ? "T1 figé, on compare la part T2" : "deux achats : T1 et T2";
+}
+
+/* ---------- Résultats ---------- */
+function decrireEtape(e) {
+  if (!e || e.type === "aucun") return "rien";
+  const r = e.type === "complement" ? e.ratio.map(Number) : ratiosPeriodes(e), tous = r.every((x) => Math.abs(x - r[0]) < 1e-9);
+  const pc = tous ? pct(r[0], 0) : r.map((x, p) => `${NOMS_P[p]} ${pct(x, 0)}`).join(", ");
+  if (e.type === "complement") return `on complète jusqu'à ${pc} (${e.prod && e.prod !== "mois" ? LIB_PROD[e.prod] : "mois + Q3, Q4"})`;
+  return `${pc} en ${({ mois: "mois + Q3, Q4", trimestres: "trimestres", cal_base_peak: "Cal-27 Base + Peak", cal_base: "Cal-27 Base plat" })[e.type]}`;
+}
+/* Version courte : « jusqu'à 80–100 % selon la période » au lieu du détail mois par mois */
+function decrireCourt(e) {
+  if (!e || e.type === "aucun") return "rien";
+  const r = e.type === "complement" ? e.ratio.map(Number) : ratiosPeriodes(e);
+  const mn = Math.min(...r), mx = Math.max(...r);
+  if (Math.abs(mx - mn) < 1e-9) return decrireEtape(e);
+  const fourchette = `${fr(mn * 100, 0)}–${pct(mx, 0)} selon la période`;
+  return e.type === "complement" ? `on complète jusqu'à ${fourchette}` : `${fourchette}`;
+}
+function rendreResultats(R) {
+  const c = R.choix, pl = +cfg.plancher;
+  {
+    const st = R.effective(strats[R.strats.indexOf(c)]);
+    const e1 = st.etapes[0], e2 = st.etapes[1];
+    const t1 = `<b>Le 22/09 (T1)</b> : ${decrireEtape(e1)}${c.covT1 > 0 ? ` → ${pct(c.covT1, 0)} du volume, ${fr(c.coutT1 / 1e6, 1)} M€ à ${fr(c.prixT1)} €/MWh en moyenne` : ""}${R.mode === "T2" ? " (déjà fait, figé)" : ""}.`;
+    const t2 = `<b>Le 01/12 (T2)</b> : ${decrireEtape(e2)}${R.mode === "T2" && c.prixT2 ? ` → ${fr(c.coutT2 / 1e6, 1)} M€ à ${fr(c.prixT2)} €/MWh` : R.mode === "T1" ? " (prix encore inconnu, anticipé)" : ""}. Total couvert : ${pct(c.covTot, 0)} du volume normal ; le reste se règle au spot.`;
+    $("decBanner").className = "decision-banner" + (R.choixRegle ? "" : " warn");
+    const titreT2 = R.kind === "T2" ? `2e achat retenu : ${decrireEtape(e2)} <span style="font-weight:400;font-size:14px">(règle T2 de ${esc(code(c.nom))}, par-dessus l'achat T1 de ${esc(code(R.decision.nom))})</span>` : null;
+    $("decBanner").innerHTML = (R.choixRegle
+      ? `<div class="titre">✅ ${titreT2 || `Stratégie retenue : ${esc(c.nom)}`}</div><div class="ligne">C'est la meilleure marge espérée (${fr(c.esp)} €/MWh) parmi les stratégies dont le pire cas reste au-dessus du plancher de ${fr(pl, 1)} €/MWh.</div>`
+      : `<div class="titre">⚠ ${titreT2 || `Stratégie recommandée : ${esc(c.nom)}`}</div><div class="ligne">Aucune stratégie ne garantit le plancher de ${fr(pl, 1)} €/MWh dans le pire scénario. On retient la plus protectrice : son pire cas est ${fr(c.pire)} €/MWh (marge espérée ${fr(c.esp)}). Le Board doit valider ce risque.</div>`) +
+      `<div class="ligne">${t1}</div><div class="ligne">${t2}</div>` +
+      (R.kind === "T1" && !decisionAuto() && cfg.decisionT1 !== c.nom ? `<div class="ligne" style="color:var(--critical);font-weight:600">⚠ La décision T1 enregistrée pour la suite (onglets T2, T3, Récap) est ${esc(cfg.decisionT1)}, pas ${esc(c.nom)}.</div>` : "");
+  }
+  $("kpis").innerHTML = [
+    [R.choixRegle ? "Stratégie retenue" : "Aucune ne respecte le plancher", esc(c.nom), R.choixRegle ? "meilleure marge espérée au-dessus du plancher" : "meilleur pire cas, à soumettre au Board"],
+    ["Marge espérée", mt(c.esp) + " €/MWh", `cible du Board : ${fr(+cfg.margeCible, 1)} €/MWh`],
+    ["Pire cas", mt(c.pire) + " €/MWh", `<span class="badge ${c.ok ? "ok" : "ko"}">${c.ok ? "✓ au-dessus" : "✗ sous"} le plancher (${fr(pl, 1)})</span>`],
+    ["Couverture", pct(c.covTot, 0), `dont ${pct(c.covT1, 0)} acheté à T1 · prix moyen T1 ${c.prixT1 ? fr(c.prixT1) : "–"}`],
+  ].map(([l, v, d], i) => `<div class="kpi"><div class="lab">${l}</div><div class="val ${i === 0 ? "txt" : ""}">${v}</div><div class="det">${d}</div></div>`).join("");
+
+  $("decisionText").innerHTML = R.choixRegle
+    ? `Parmi les stratégies dont le pire cas reste au-dessus du plancher (${fr(pl, 1)} €/MWh), on retient celle qui a la meilleure marge espérée : <b>${esc(c.nom)}</b>.`
+    : `Aucune stratégie ne garantit le plancher de ${fr(pl, 1)} €/MWh dans le pire scénario${cfg.stress && R.chocs.length > 1 ? " (crises comprises)" : ""}. La plus protectrice est <b>${esc(c.nom)}</b> (pire cas ${fr(c.pire)} €/MWh) : la décision revient au Board.`;
+
+  nuage($("chScatter"), R.strats.map((s, i) => ({ i, nom: s.nom, court: code(s.nom), x: s.pire, y: s.esp, best: s === c })), pl);
+
+  const cols = R.chocs.map((k) => k.nom);
+  let t = `<table><thead><tr><th rowspan="2">Stratégie</th><th rowspan="2">Espérée</th><th colspan="${cols.length}" style="text-align:center">Pire cas par niveau de prix</th><th rowspan="2">Pire cas</th><th rowspan="2">OK</th></tr>` +
+    `<tr>${cols.map((x) => `<th>${esc(x)}</th>`).join("")}</tr></thead><tbody>`;
+  R.strats.forEach((s, i) => {
+    t += `<tr class="clickable ${s === c ? "chosen" : ""}" data-i="${i}"><td>${esc(s.nom)}</td><td>${mt(s.esp)}</td>` +
+      s.pireChoc.map((v) => `<td>${mt(v)}</td>`).join("") +
+      `<td><b>${mt(s.pire)}</b></td><td><span class="badge ${s.ok ? "ok" : "ko"}">${s.ok ? "✓" : s.depasse ? "✗ >100 %" : "✗"}</span></td></tr>`;
+  });
+  $("tblSynth").innerHTML = t + `</tbody></table><div class="hint">Marges en €/MWh. Espérée = moyenne pondérée des scénarios météo (sans choc). Clique sur une ligne pour modifier la stratégie.</div>`;
+  $("tblSynth").querySelectorAll("tr[data-i]").forEach((tr) => tr.addEventListener("click", () => { sel = +tr.dataset.i; rendre(); }));
+
+  if (chocVue >= R.chocs.length) chocVue = 0;
+  $("segChoc").innerHTML = R.chocs.map((k, j) => `<button class="${j === chocVue ? "on" : ""}" data-c="${j}">${esc(k.nom)}</button>`).join("");
+  $("segChoc").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { chocVue = +b.dataset.c; rendre(false); }));
+  barresGroupees($("chBars"),
+    R.strats.map((s) => ({ court: code(s.nom), long: s.nom, best: s === c })), ANNEES,
+    R.strats.map((s) => ANNEES.map((y) => s.cas.find((k) => k.c === chocVue && k.y === y).mwh)),
+    { ligne: pl, titre: "Marge par stratégie et par scénario" });
+  $("legBars").innerHTML = ANNEES.map((y, j) => `<span><i style="background:${SERIES[j]}"></i>Météo ${y}</span>`).join("") +
+    `<span><i class="line" style="background:var(--critical)"></i>Plancher</span>`;
+}
+
+/* ---------- Sous-stratégies ---------- */
+const libCombo = (x, fige) => `${x.p1 ? LIB_PROD[x.p1] : fige ? "T1 figé" : "–"} → ${x.p2 ? LIB_PROD[x.p2] : "–"}`;
+const badgeOK = (x) => `<span class="badge ${x.ok ? "ok" : "ko"}">${x.ok ? "✓" : x.depasse ? "✗ >100 %" : "✗"}</span>`;
+
+/* Matrice : lignes = produit T1, colonnes = produit T2 */
+function matrice(S, fige, ref) {
+  const cell = (x) => !x ? `<td>–</td>` :
+    `<td class="${x === S.best ? "chosen" : ""}" style="text-align:center">${mt(x.esp)} / <b>${mt(x.pire)}</b>${x.ok ? "" : " " + badgeOK(x)}` +
+    (ref ? `<div class="hint" style="margin:0">à T1 : ${mt(ref(x).esp)} / ${mt(ref(x).pire)}</div>` : "") + `</td>`;
+  let t = `<table><thead><tr><th>Achat T1 ↓ / achat T2 →</th>${S.b.map((b) => `<th style="text-align:center">${b ? LIB_PROD[b] : "aucun"}</th>`).join("")}</tr></thead><tbody>`;
+  for (const a of S.a) {
+    t += `<tr><td>${a ? LIB_PROD[a] : fige ? "T1 figé (décision)" : "aucun"}</td>` +
+      S.b.map((b) => cell(S.liste.find((x) => x.p1 === a && x.p2 === b))).join("") + `</tr>`;
+  }
+  return t + `</tbody></table><div class="hint">Chaque case : marge espérée / <b>pire cas</b> (€/MWh). En vert : la meilleure selon la règle du Board.</div>`;
+}
+
+function rendreSousStrategies(R) {
+  const fige = R.kind === "T2";
+  const SS = strats.map((_, i) => sousStrategies(R, i));
+  R.SS = SS;
+  $("ssDesc").innerHTML = fige
+    ? `L'achat T1 est figé (décision « ${esc(R.decision.nom)} ») : pour chaque stratégie, on compare les 4 produits possibles pour l'achat T2, au prix réel du 01/12.`
+    : `Pour chaque stratégie, on garde les mêmes pourcentages et on essaie les 4 produits à T1 et les 4 à T2 : 16 sous-stratégies. Le prix T2 reste anticipé avec alpha. On retient la meilleure avec la règle du Board (meilleure espérée parmi celles au-dessus du plancher ; sinon le meilleur pire cas).`;
+  let t = `<table><thead><tr><th>Stratégie</th><th>Telle que définie<br>espérée / pire</th><th>Meilleure sous-stratégie<br>(T1 → T2)</th><th>Espérée</th><th>Pire cas</th><th>Gain pire cas</th><th>OK</th></tr></thead><tbody>`;
+  SS.forEach((S, i) => {
+    const d = R.strats[i], b = S.best;
+    t += `<tr class="clickable ${R.strats[i] === R.choix ? "chosen" : ""} ${i === sel ? "sel" : ""}" data-i="${i}"><td>${esc(S.nom)}${R.strats[i] === R.choix ? " ✓" : ""}</td><td>${mt(d.esp)} / ${mt(d.pire)}</td><td>${libCombo(b, fige)}</td>` +
+      `<td>${mt(b.esp)}</td><td><b>${mt(b.pire)}</b></td><td>${mt(b.pire - d.pire)}</td><td>${badgeOK(b)}</td></tr>`;
+  });
+  $("tblSS").innerHTML = t + `</tbody></table><div class="hint">En vert (✓) : la stratégie retenue. Trait bleu : la stratégie affichée dans la grille ci-dessous. Clique sur une ligne pour voir ses ${fige ? "4" : "16"} sous-stratégies.</div>`;
+  $("tblSS").querySelectorAll("tr[data-i]").forEach((tr) => tr.addEventListener("click", () => { sel = +tr.dataset.i; rendre(); }));
+  $("ssMatTitre").textContent = `${strats[sel].nom} : toutes les sous-stratégies`;
+  $("tblSSmat").innerHTML = matrice(SS[sel], fige);
+}
+
+/* ---------- T2 : rétrospectif ---------- */
+function rendreRetro() {
+  const RA = calculer("T1"), RH = calculer("H2");
+  const A = strats.map((_, i) => sousStrategies(RA, i)), H = strats.map((_, i) => sousStrategies(RH, i));
+  const trouve = (S, x) => S.liste.find((y) => y.p1 === x.p1 && y.p2 === x.p2);
+  let t = `<table><thead><tr><th rowspan="2">Stratégie</th><th colspan="3" style="text-align:center">Choisie à T1 (info du 22/09)</th><th colspan="3" style="text-align:center">Meilleure en sachant les prix du 01/12</th><th rowspan="2">Coût de ne pas savoir</th></tr>` +
+    `<tr><th>Sous-stratégie</th><th>Espérée réelle</th><th>Pire réel</th><th>Sous-stratégie</th><th>Espérée</th><th>Pire cas</th></tr></thead><tbody>`;
+  strats.forEach((s, i) => {
+    const a = trouve(H[i], A[i].best), h = H[i].best;
+    t += `<tr class="clickable ${i === sel ? "sel" : ""}" data-i="${i}"><td>${esc(s.nom)}</td><td>${libCombo(A[i].best)}</td><td>${mt(a.esp)}</td><td>${mt(a.pire)}</td>` +
+      `<td>${libCombo(h)}</td><td>${mt(h.esp)}</td><td><b>${mt(h.pire)}</b></td><td>${mt(h.esp - a.esp)}</td></tr>`;
+  });
+  $("tblRetro").innerHTML = t + `</tbody></table><div class="hint">« Espérée réelle » : la sous-stratégie choisie à T1, recalculée avec les vrais prix et clients du 01/12. « Coût de ne pas savoir » : marge espérée en plus si on avait connu le 01/12 (€/MWh).</div>`;
+  $("tblRetro").querySelectorAll("tr[data-i]").forEach((tr) => tr.addEventListener("click", () => { sel = +tr.dataset.i; rendre(); }));
+  $("retroMatTitre").textContent = `${strats[sel].nom} : les 16 sous-stratégies en rétrospectif`;
+  $("tblRetroMat").innerHTML = matrice(H[sel], false, (x) => trouve(A[sel], x));
+  const d1 = +cfg.dates.T1.calBase, d2 = +cfg.dates.T2.calBase;
+  $("retroText").innerHTML = `Le Cal-27 Base est passé de ${fr(d1)} à ${fr(d2)} €/MWh (${mt((d2 / d1 - 1) * 100, 1)} %) entre T1 et T2. ` +
+    (d2 < d1 ? `En rétrospectif, tout ce qui achète plus au 01/12 paraît donc meilleur : c'est l'effet de la baisse du marché (de la chance), pas une erreur de méthode à T1.`
+             : `En rétrospectif, tout ce qui a acheté tôt paraît meilleur : c'est l'effet de la hausse du marché, pas un mérite de méthode à T1.`);
+}
+
+/* ---------- Détails ---------- */
+function rendreDetails(R) {
+  if (R.ref) {
+    let p = `<table><thead><tr><th>Stratégie</th><th>Marge espérée</th><th>Pire cas</th><th>Espérée perdue<br>(prix de l'assurance)</th><th>Pire cas gagné<br>(ce qu'elle protège)</th><th>Protection par €<br>d'espérée perdu</th></tr></thead><tbody>`;
+    for (const s of R.strats) {
+      if (s === R.ref) continue;
+      const cout = R.ref.esp - s.esp, gain = s.pire - R.ref.pire;
+      p += `<tr><td>${esc(s.nom)}</td><td>${mt(s.esp)}</td><td>${mt(s.pire)}</td><td>${fr(cout)}</td><td>${mt(gain)}</td><td>${cout > 1e-9 ? mt(gain / cout) : "–"}</td></tr>`;
+    }
+    const ex = R.strats.find((x) => x === R.choix && x !== R.ref) || R.strats.find((x) => x !== R.ref);
+    const cEx = R.ref.esp - ex.esp, gEx = ex.pire - R.ref.pire;
+    $("tblProt").innerHTML = p + `</tbody></table><div class="hint">Référence : ${esc(R.ref.nom)}, en €/MWh. ` +
+      `Exemple : ${esc(ex.nom)} gagne ${fr(cEx)} €/MWh de moins en moyenne que ${esc(code(R.ref.nom))}, mais son pire cas est meilleur de ${fr(gEx)} €/MWh` +
+      (cEx > 1e-9 ? ` : chaque euro « payé » en marge espérée protège ${fr(gEx / cEx, 1)} € dans le pire scénario.` : ".") + `</div>`;
+  } else $("tblProt").innerHTML = `<div class="hint">Ajoute une stratégie sans aucun achat pour servir de référence.</div>`;
+
+  const pl = +cfg.plancher;
+  let se = `<table><thead><tr><th>Plancher</th><th>Stratégies OK</th><th>Choix</th><th>Espérée</th><th>Pire cas</th></tr></thead><tbody>`;
+  for (const x of R.sens) se += `<tr class="${Math.abs(x.f - pl) < 1e-9 ? "chosen" : ""}"><td>${fr(x.f, 1)}</td><td>${x.n}</td><td style="text-align:left">${x.c ? esc(x.c.nom) : "aucune"}</td><td>${x.c ? mt(x.c.esp) : "–"}</td><td>${x.c ? mt(x.c.pire) : "–"}</td></tr>`;
+  $("tblSens").innerHTML = se + `</tbody></table>`;
+
+  const r = R.strats[sel];
+  $("detailDesc").innerHTML = `<b>${esc(r.nom)}</b> : achats par produit, puis marge dans chaque scénario (M€ sauf mention).`;
+  const agg = new Map();
+  for (const l of r.lignes) {
+    const key = `${l.date}|${nomProduit(l)}`;
+    if (!agg.has(key)) agg.set(key, { l, Base: 0, Peak: 0, e: 0, pB: null, pP: null });
+    const a = agg.get(key); a[l.comp] += l.mw; a.e += l.e; if (l.comp === "Base") a.pB = l.prix; else a.pP = l.prix;
+  }
+  let d = `<table><thead><tr><th>Date</th><th>Produit</th><th>Base (MW)</th><th>Peak (MW)</th><th>Énergie (MWh)</th><th>Prix Base</th><th>Prix Peak</th></tr></thead><tbody>`;
+  for (const [k, a] of agg) {
+    const [date, prod] = k.split("|");
+    const px = (v) => v != null ? fr(v) : (a.l.date === "T2" ? "anticipé*" : "–");
+    d += `<tr><td>${date}</td><td>${prod}</td><td>${fr(a.Base)}</td><td>${fr(a.Peak)}</td><td>${fr(a.e, 0)}</td><td>${px(a.pB)}</td><td>${a.Peak ? px(a.pP) : "–"}</td></tr>`;
+  }
+  if (!agg.size) d += `<tr><td colspan="7">Aucun achat : tout le volume est acheté au spot.</td></tr>`;
+  d += `</tbody></table>${R.mode === "T1" ? `<div class="hint">* Prix T2 anticipé dans chaque scénario : F_T2 = F_T1 + α × (niveau du scénario − F_T1).</div>` : ""}<br>`;
+  d += `<table><thead><tr><th>Météo</th><th style="text-align:left">Niveau de prix</th><th>Volume (MWh)</th><th>Ventes</th><th>Achats T1</th><th>Achats T2</th><th>Résiduel spot</th><th>Marge</th><th>€/MWh</th></tr></thead><tbody>`;
+  for (const k of r.cas) d += `<tr><td>Météo ${k.y}</td><td style="text-align:left">${esc(k.choc)}</td><td>${fr(k.vol, 0)}</td><td>${fr(k.ca / 1e6)}</td><td>${fr(k.cT1 / 1e6)}</td><td>${fr(k.cT2 / 1e6)}</td><td>${fr(k.cRes / 1e6)}</td><td>${mt(k.marge / 1e6)}</td><td><b>${mt(k.mwh)}</b></td></tr>`;
+  $("tblDetail").innerHTML = d + `</tbody></table>`;
+
+  let tp = `<table><thead><tr><th>Période</th><th>Produit</th><th>Base (MW)</th><th>Peak (MW)</th><th>Énergie (MWh)</th><th>Prix Base</th><th>Prix Peak</th><th>Off-peak déduit</th></tr></thead><tbody>`;
+  for (let p = 0; p < P; p++) {
+    const pr = produitPeriode(p);
+    tp += `<tr><td>${NOMS_P[p]}</td><td>${nomProduit(pr)}${R.pA.src[p] === "Q" && p < 6 ? " (Q)" : ""}</td><td>${fr(R.c.base100P[p])}</td><td>${fr(R.c.peak100P[p])}</td><td>${fr(R.c.eP[p], 0)}</td><td>${fr(R.pA.Fb[p])}</td><td>${fr(R.pA.Fp[p])}</td><td>${fr(R.pA.Foff[p])}</td></tr>`;
+  }
+  $("tblProd").innerHTML = tp + `</tbody></table><div class="hint">Base = consommation moyenne hors pointe ; Peak = supplément moyen de 8h à 20h en semaine. Coût du profil couvert à 100 % : ${fr(R.prixProfil)} €/MWh.</div>`;
+}
+
+/* ---------- Monte Carlo ---------- */
+function rendreMC(R) {
+  const M = monteCarlo(R); R.mcRes = M;
+  if (!document.activeElement || !["mcN", "mcSig", "mcSq"].includes(document.activeElement.id)) {
+    $("mcN").value = cfg.mc.n; $("mcSig").value = cfg.mc.sigma; $("mcSq").value = cfg.mc.sigmaQ;
+  }
+  $("mcDesc").innerHTML = `<b>L'idée :</b> nos 4 scénarios ne font varier que la météo, avec des prix ancrés sur les forwards du jour. Mais le niveau des prix peut lui aussi changer d'ici 2027 (gaz, nucléaire, CO₂…). ` +
+    `On simule donc ${fr(M.n, 0)} années 2027 possibles : pour chacune, on tire au hasard une année météo (25 % chacune) et un niveau de prix (par exemple −15 % ou +25 % par rapport aux forwards), puis on recalcule la marge de chaque stratégie. ` +
+    `<br><b>Les réglages :</b> volatilité ${pct(+cfg.mc.sigma, 0)} par an sur ${fr(M.horizon, 2)} an jusqu'au milieu de 2027, soit un écart-type d'environ ±${pct(M.sc, 0)} sur le niveau de l'année, plus ±${pct(M.sq, 0)} propre à chaque trimestre. En moyenne, le niveau tiré vaut 1 (le forward). ` +
+    (R.mode === "T2" ? `Les achats T1 et T2 sont à prix figé : seul ce qui est acheté ou revendu au spot subit le tirage.` : `Le 1er achat est à prix figé ; le 2e, encore à faire, suit en partie le tirage (avec alpha) ; le reste au spot le subit entièrement.`) +
+    `<br><b>Comment lire :</b> la barre épaisse contient 90 % des tirages (de P5 à P95), le trait fin 98 % (de P1 à P99), le rond est la moyenne. P5 = la marge en dessous de laquelle on tombe seulement 1 fois sur 20.`;
+  const W = 560, H = 330, m = { l: 48, r: 12, t: 12, b: 40 };
+  const all = M.stats.flatMap((x) => [x.p1, x.p99]).concat([+cfg.plancher, 0]);
+  const tk = ticks(Math.min(...all), Math.max(...all));
+  const Y = (v) => m.t + (H - m.t - m.b) * (1 - (v - tk[0]) / (tk[tk.length - 1] - tk[0]));
+  const gw = (W - m.l - m.r) / M.stats.length;
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Distribution des marges">`;
+  for (const t of tk) svg += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(t)}" y2="${Y(t)}" stroke="var(--grid)"/><text x="${m.l - 6}" y="${Y(t) + 4}" text-anchor="end" font-size="11" fill="var(--muted)">${fr(t, 0)}</text>`;
+  svg += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--axis)" stroke-width="1.2"/>`;
+  M.stats.forEach((x, i) => {
+    const cx = m.l + gw * (i + 0.5), col = x === M.choix ? "var(--good)" : "var(--s1)";
+    const tipTxt = `<div class='t'>${x.nom}</div>Moyenne : <b>${fr(x.moy)}</b><br>Médiane : ${fr(x.med)}<br>P5 : <b>${fr(x.p5)}</b> · P1 : ${fr(x.p1)}<br>P95 : ${fr(x.p95)}<br>P(marge &lt; plancher) : ${pct(x.pPl)}`;
+    svg += `<g data-tip="${esc(tipTxt)}"><rect x="${cx - gw / 2}" y="${m.t}" width="${gw}" height="${H - m.t - m.b}" fill="transparent"/>` +
+      `<line x1="${cx}" x2="${cx}" y1="${Y(x.p99)}" y2="${Y(x.p1)}" stroke="${col}" stroke-width="2"/>` +
+      `<rect x="${cx - 7}" y="${Y(x.p95)}" width="14" height="${Math.max(2, Y(x.p5) - Y(x.p95))}" rx="4" fill="${col}"/>` +
+      `<circle cx="${cx}" cy="${Y(x.moy)}" r="4" fill="var(--surface)" stroke="var(--ink)" stroke-width="2"/></g>` +
+      `<text x="${cx}" y="${H - m.b + 16}" text-anchor="middle" font-size="11.5" fill="var(--ink-2)" font-weight="${x === M.choix ? 700 : 400}">${esc(code(x.nom))}</text>`;
+  });
+  svg += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(+cfg.plancher)}" y2="${Y(+cfg.plancher)}" stroke="var(--critical)" stroke-width="1.5" stroke-dasharray="5 4"/>` +
+    `<text x="${m.l + 4}" y="${Y(+cfg.plancher) - 5}" font-size="11" fill="var(--critical)" stroke="var(--surface)" stroke-width="4" paint-order="stroke">Plancher ${fr(+cfg.plancher, 1)}</text>`;
+  svg += `<text x="${m.l}" y="${H - 6}" font-size="11" fill="var(--muted)">€/MWh</text></svg>`;
+  $("chMC").innerHTML = svg; bindTips($("chMC"));
+  let t = `<table><thead><tr><th>Stratégie</th><th>Moyenne</th><th>P5</th><th>P1</th><th>CVaR 5 %</th><th>P(&lt; plancher)</th><th>P(&lt; 0)</th></tr></thead><tbody>`;
+  for (const x of M.stats) t += `<tr class="${x === M.choix ? "chosen" : ""}"><td>${esc(x.nom)}</td><td>${mt(x.moy)}</td><td><b>${mt(x.p5)}</b></td><td>${mt(x.p1)}</td><td>${mt(x.cvar5)}</td><td>${pct(x.pPl, 0)}</td><td>${pct(x.pNeg, 0)}</td></tr>`;
+  $("tblMC").innerHTML = t + `</tbody></table><div class="hint">P5 : 5 % des tirages font moins bien. CVaR 5 % : moyenne des 5 % pires tirages.</div>`;
+  $("mcText").innerHTML = M.regle
+    ? `Règle du Board version probabiliste (P5 ≥ plancher, meilleure moyenne) : <b>${esc(M.choix.nom)}</b>.`
+    : `Aucune stratégie n'a un P5 au-dessus du plancher de ${fr(+cfg.plancher, 1)} €/MWh. La plus protectrice (meilleur P5) est <b>${esc(M.choix.nom)}</b> (P5 = ${fr(M.choix.p5)} €/MWh).`;
+}
+
+/* ---------- T3 : position ouverte du 01/01/2027 ---------- */
+let poStrat = null, poSrc = null, poLignes = [];
+function rendrePositionOuverte() {
+  if (!D.jour1 || !Rpo) { $("cardPO").hidden = true; return; }
+  const iChoix = Rpo.strats.indexOf(Rpo.choix);
+  if (poStrat == null || poStrat >= Rpo.strats.length) poStrat = iChoix;
+  const aT3 = cfg.t3.temp && cfg.t3.temp.length === 24;
+  if (poSrc == null) poSrc = aT3 ? "T3" : "normale";
+  const dec = code(Rpo.decision.nom);
+  $("poStrat").innerHTML = Rpo.strats.map((s, i) => `<option value="${i}" ${i === poStrat ? "selected" : ""}>T1 de ${esc(dec)} + T2 de ${esc(s.nom)}${i === iChoix ? " (retenue au 01/12)" : ""}</option>`).join("");
+  const sources = (aT3 ? [["T3", "Température prévue le 31/12"]] : []).concat([["normale", "Température normale"]], ANNEES.map((y) => [y, "Météo " + y]));
+  $("poSrc").innerHTML = sources.map(([v, l]) => `<option value="${v}" ${v === poSrc ? "selected" : ""}>${l}</option>`).join("");
+
+  poLignes = positionOuverte(Rpo, poStrat, poSrc);
+  const tot = (k) => poLignes.reduce((a, l) => a + l[k], 0);
+  const achat = poLignes.reduce((a, l) => a + Math.max(l.open, 0), 0), vente = poLignes.reduce((a, l) => a + Math.max(-l.open, 0), 0);
+  let valeur = null;
+  const jan = prixMois(cfg.dates.T3, 0);
+  if (jan) {
+    const pOff = (jan[0] * HP[0] - jan[1] * HPK[0]) / (HP[0] - HPK[0]);
+    valeur = poLignes.reduce((a, l) => a + l.open * (PK[l.h] ? jan[1] : pOff), 0);
+  }
+  const s = Rpo.strats[poStrat], d3 = cfg.dates.T3;
+  $("poKpis").innerHTML = [
+    ["Consommation prévue", fr(tot("load"), 0) + " MWh", `clients du 31/12 : ${fr(+d3.nbRes, 0)} RES1 · ${fr(+d3.nbPro, 0)} PRO1`],
+    ["Livraison des produits", fr(tot("couv"), 0) + " MWh", `Base ${fr(s.livB[0], 1)} MW · Peak +${fr(s.livP[0], 1)} MW (8h-20h)`],
+    ["Solaire", fr(tot("sol"), 1) + " MWh", cfg.t3.solaireOn ? `${fr(+cfg.t3.mwc, 0)} MWc` : "non déduit"],
+    ["À acheter / à revendre", `${fr(achat, 0)} / ${fr(vente, 0)} MWh`, `position nette ${fr(achat - vente, 0)} MWh`],
+  ].concat(valeur != null ? [["Valeur indicative", fr(valeur / 1000, 1) + " k€", "nette, aux prix Jan-27 du 31/12"]] : [])
+   .map(([l, v, d]) => `<div class="kpi"><div class="lab">${l}</div><div class="val" style="font-size:19px">${v}</div><div class="det">${d}</div></div>`).join("");
+
+  barresPO($("chPO"), poLignes);
+  let t = `<table><thead><tr><th>Heure</th><th>T. normale</th><th>T. prévue</th><th>Consommation (MW)</th><th>Livraison (MW)</th><th>Solaire (MW)</th><th>Position ouverte (MW)</th><th>Court / long</th></tr></thead><tbody>`;
+  for (const l of poLignes) {
+    t += `<tr><td>${String(l.h).padStart(2, "0")}:00 – ${String(l.h + 1).padStart(2, "0")}:00</td><td>${fr(l.tn, 1)}</td><td>${poSrc === "T3" ? fr(l.tp, 1) : "–"}</td>` +
+      `<td>${fr(l.load, 1)}</td><td>${fr(l.couv, 1)}</td><td>${fr(l.sol, 1)}</td><td><b>${fr(l.open, 1)}</b></td>` +
+      `<td><span class="sens"><i style="background:${l.open > 0 ? "var(--s1)" : "var(--s2)"}"></i>${l.open > 0 ? "Court · achat" : "Long · revente"}</span></td></tr>`;
+  }
+  t += `<tr><td><b>Total (MWh)</b></td><td></td><td></td><td><b>${fr(tot("load"), 0)}</b></td><td><b>${fr(tot("couv"), 0)}</b></td><td><b>${fr(tot("sol"), 1)}</b></td><td><b>${fr(tot("open"), 0)}</b></td><td></td></tr>`;
+  $("tblPO").innerHTML = t + `</tbody></table>`;
+}
+
+/* ============================================================
+   RÉSULTAT DU DAY-AHEAD DU 01/01/2027 (prix publiés par le professeur)
+   ------------------------------------------------------------
+   Notre ordre = position ouverte de la stratégie retenue le 01/12,
+   avec la prévision du 31/12 (comme le bon de commande envoyé) :
+     prix < 0  -> intervalle 1 : Net Load (solaire arrêté)
+     prix >= 0 -> intervalle 2 : Net Load − solaire
+   ============================================================ */
+function resultatDA() {
+  const da = D.meta.da, iC = Rpo.strats.indexOf(Rpo.choix), s = Rpo.strats[iC];
+  const src = cfg.t3.temp && cfg.t3.temp.length === 24 ? "T3" : "normale";
+  const H = positionOuverte(Rpo, iC, src).map((l) => {
+    const p = +da.prix[l.h], net = l.load - l.couv;
+    const vol = p < 0 ? net : net - l.sol;
+    return Object.assign({}, l, { p, net, vol, cout: vol * p,
+      fixe: (da.fixe_par || [])[l.h] || "", eq: (da.achats_equipes || [])[l.h] });
+  });
+  const somme = (f, filtre = () => true) => H.filter(filtre).reduce((a, x) => a + f(x), 0);
+  const nPk = somme((x) => PK[x.h]);
+  // Produits de janvier livrés ce jour-là : MW × heures × prix payé (22/09 ou 01/12)
+  const produits = s.lignes.filter((l) => l.per.includes(0)).map((l) => {
+    const e = l.mw * (l.comp === "Base" ? 24 : nPk);
+    return { l, e, cout: e * l.prix };
+  });
+  const pMax = Math.max(...H.map((x) => x.p));
+  const r = {
+    da, s, H, produits, src,
+    achatE: somme((x) => x.vol, (x) => x.vol > 0), achatC: somme((x) => x.cout, (x) => x.vol > 0),
+    venteE: -somme((x) => x.vol, (x) => x.vol < 0), venteC: -somme((x) => x.cout, (x) => x.vol < 0),
+    net: somme((x) => x.cout), netE: somme((x) => x.vol),
+    negE: -somme((x) => x.vol, (x) => x.p < 0 && x.vol < 0), negC: somme((x) => x.cout, (x) => x.p < 0 && x.vol < 0),
+    pMax, maxE: somme((x) => x.vol, (x) => x.p === pMax && x.vol > 0), maxC: somme((x) => x.cout, (x) => x.p === pMax && x.vol > 0),
+    hMax: H.filter((x) => x.p === pMax).map((x) => x.h), hNeg: H.filter((x) => x.p < 0).map((x) => x.h),
+    conso: somme((x) => x.load), sol: somme((x) => x.sol),
+    base: somme((x) => x.p) / 24, peak: somme((x) => x.p, (x) => PK[x.h]) / Math.max(1, nPk),
+    toutSpot: somme((x) => (x.load - x.sol) * x.p),
+  };
+  r.ventes = r.conso * +cfg.prixVente;
+  r.coutProduits = produits.reduce((a, x) => a + x.cout, 0);
+  r.marge = r.ventes - r.coutProduits - r.net;
+  return r;
+}
+
+function plageHeures(hs) {
+  if (!hs.length) return "–";
+  const parts = []; let a = hs[0], b = hs[0];
+  for (const h of hs.slice(1).concat([null])) {
+    if (h === b + 1) { b = h; continue; }
+    parts.push(`${a} h-${b + 1} h`); if (h != null) { a = h; b = h; }
+  }
+  return parts.join(", ");
+}
+
+function rendreResultatDA() {
+  $("resContenu").hidden = !aResultatDA();
+  if (!aResultatDA()) {
+    $("resSub").textContent = "";
+    $("resBanner").className = "decision-banner warn";
+    $("resBanner").innerHTML = `<div class="titre">Les prix du day-ahead du 01/01 ne sont pas encore dans le modèle</div>` +
+      `<div class="ligne">1. Colle le bloc <b>DA_0101</b> (fichier ajout_config_DA_0101.py) à la fin de <b>config.py</b>.</div>` +
+      `<div class="ligne">2. Vérifie que <b>export_dashboard.py</b> est bien la nouvelle version (elle contient la ligne « "da": getattr(config, "DA_0101", None) »).</div>` +
+      `<div class="ligne">3. Relance le tableau de bord (lancer_dashboard.bat) : la date « données générées le … » en haut à gauche doit être celle d'aujourd'hui.</div>`;
+    return;
+  }
+  const r = resultatDA(), da = r.da;
+  const ke = (x) => fr(x / 1000, 1) + " k€";
+  const hh = (h) => `${String(h).padStart(2, "0")}:00 – ${String(h + 1).padStart(2, "0")}:00`;
+  $("resSub").textContent = `groupe ${da.groupe || ""}${da.equipe ? " · équipe " + da.equipe : ""} · stratégie retenue le 01/12 : ${r.s.nom}`;
+
+  const aVente = r.venteE > 0.05, aNeg = r.negE > 0.05, aMax = r.maxE > 0.05;
+  const equilibre = Math.abs(r.netE) < 0.1 * (r.achatE + r.venteE);
+  $("resBanner").className = "decision-banner warn";
+  $("resBanner").innerHTML =
+    `<div class="titre">${r.net >= 0 ? `Coût net du day-ahead : ${ke(r.net)}` : `Gain net du day-ahead : ${ke(-r.net)}`} pour ${fr(r.netE, 0)} MWh nets</div>` +
+    `<div class="ligne">On a acheté ${fr(r.achatE, 0)} MWh à ${fr(r.achatC / r.achatE, 0)} €/MWh en moyenne` +
+    (aVente ? ` et revendu ${fr(r.venteE, 0)} MWh à ${fr(r.venteC / r.venteE, 0)} €/MWh` : "") +
+    (equilibre ? ` : en énergie la journée est presque équilibrée, c'est la <b>forme</b> qui coûte.` : ` : position nette ${r.netE > 0 ? "courte" : "longue"} de ${fr(Math.abs(r.netE), 0)} MWh.`) + `</div>` +
+    ((aMax || aNeg) ? `<div class="ligne">` +
+      (aMax ? `${plageHeures(r.hMax)} : ${fr(r.maxE, 0)} MWh achetés à ${fr(r.pMax, 0)} €/MWh (${ke(r.maxC)}).` : "") +
+      (aNeg ? ` ${plageHeures(r.hNeg)} : ${fr(r.negE, 1)} MWh revendus à prix négatif (${ke(r.negC)} payés pour s'en débarrasser).` : "") + `</div>` : "");
+
+  $("resKpis").innerHTML = [
+    ["Prix du jour", `${fr(r.base, 1)} / ${fr(r.peak, 0)}`, "€/MWh · Base / Peak"],
+    ["Achats", fr(r.achatE, 0) + " MWh", `${ke(r.achatC)} · ${fr(r.achatC / r.achatE, 0)} €/MWh`],
+    ["Reventes", fr(Math.max(0, r.venteE), 0) + " MWh", aVente ? `${ke(r.venteC)} · ${fr(r.venteC / r.venteE, 0)} €/MWh` : "aucune revente"],
+    ["Coût net du day-ahead", ke(r.net), `position nette ${fr(r.netE, 1)} MWh`],
+    ["Marge de la journée", mt(r.marge / r.conso) + " €/MWh", `${ke(r.marge)} sur ${fr(r.conso, 0)} MWh`],
+  ].map(([l, v, d]) => `<div class="kpi"><div class="lab">${l}</div><div class="val" style="font-size:19px">${v}</div><div class="det">${d}</div></div>`).join("");
+
+  barres24($("chResPrix"), r.H.map((x) => x.p), () => "var(--s4)",
+    (i) => { const x = r.H[i]; return `<div class='t'>${hh(i)}</div>Prix : <b>${fr(x.p, 0)} €/MWh</b><br>Fixé par : ${esc(x.fixe)}` + (x.eq != null ? `<br>Achats nets des équipes : ${fr(+x.eq, 1)} MWh` : ""); },
+    "€/MWh", "Prix spot du 01/01/2027 heure par heure");
+  barres24($("chResVol"), r.H.map((x) => x.vol), (i, v) => (v > 0 ? "var(--s1)" : "var(--s2)"),
+    (i) => { const x = r.H[i]; return `<div class='t'>${hh(i)}</div><b>${x.vol > 0 ? "Achat" : "Revente"} : ${fr(Math.abs(x.vol), 1)} MWh</b><br>Prix : ${fr(x.p, 0)} €/MWh<br>${x.cout >= 0 ? "Dépense" : "Recette"} : ${fr(Math.abs(x.cout), 0)} €`; },
+    "MWh", "Volume exécuté de notre ordre heure par heure");
+
+  let t = `<table><thead><tr><th>Heure</th><th>Prix (€/MWh)</th><th>Fixé par</th><th>Achats nets des équipes (MWh)</th><th>Net Load (MWh)</th><th>Solaire (MWh)</th><th>Volume exécuté (MWh)</th><th>Dépense (+) / recette (−) (€)</th></tr></thead><tbody>`;
+  for (const x of r.H) {
+    t += `<tr><td>${hh(x.h)}</td><td>${fr(x.p, 0)}</td><td style="text-align:left">${esc(x.fixe)}</td><td>${x.eq != null ? fr(+x.eq, 1) : "–"}</td>` +
+      `<td>${fr(x.net, 2)}</td><td>${fr(x.sol, 1)}</td><td><b>${fr(x.vol, 2)}</b></td><td>${mt(x.cout, 0)}</td></tr>`;
+  }
+  t += `<tr><td><b>Total</b></td><td></td><td></td><td></td><td><b>${fr(r.H.reduce((a, x) => a + x.net, 0), 1)}</b></td><td><b>${fr(r.sol, 1)}</b></td><td><b>${fr(r.netE, 1)}</b></td><td><b>${mt(r.net, 0)}</b></td></tr>`;
+  $("tblRes").innerHTML = t + `</tbody></table>`;
+
+  let m = `<table><thead><tr><th></th><th>MW</th><th>Prix (€/MWh)</th><th>MWh ce jour</th><th>€</th></tr></thead><tbody>`;
+  m += `<tr><td>Ventes aux clients (${fr(+cfg.prixVente)} €/MWh)</td><td></td><td></td><td>${fr(r.conso, 0)}</td><td>${fr(r.ventes, 0)}</td></tr>`;
+  for (const x of r.produits) {
+    m += `<tr><td>− ${nomProduit(x.l)} ${x.l.comp}, acheté le ${LIB_DATE[x.l.date]}</td><td>${fr(x.l.mw, 2)}</td><td>${fr(x.l.prix)}</td><td>${fr(x.e, 0)}</td><td>${mt(-x.cout, 0)}</td></tr>`;
+  }
+  m += `<tr><td>− Day-ahead (achats − reventes)</td><td></td><td></td><td>${fr(r.netE, 1)}</td><td>${mt(-r.net, 0)}</td></tr>`;
+  m += `<tr class="sel"><td><b>Marge de la journée</b></td><td></td><td></td><td></td><td><b>${mt(r.marge, 0)}</b></td></tr>`;
+  m += `<tr><td><b>soit, par MWh consommé</b></td><td></td><td></td><td></td><td><b>${mt(r.marge / r.conso)} €/MWh</b></td></tr>`;
+  m += `<tr><td>Pour comparer : tout acheter au spot ce jour-là</td><td></td><td></td><td>${fr(r.conso - r.sol, 0)}</td><td>${mt(-r.toutSpot, 0)}</td></tr>`;
+  $("tblResMarge").innerHTML = m + `</tbody></table>`;
+
+  const merit = (da.merit || []).slice().sort((a, b) => a[1] - b[1]);
+  let cumul = 0;
+  let g = `<table><thead><tr><th>Moyen</th><th>Coût marginal (€/MWh)</th><th>Capacité (MW)</th><th>Cumul (MW)</th><th>Heures où il fixe le prix</th></tr></thead><tbody>`;
+  for (const [nom, cout, cap] of merit) {
+    cumul += +cap;
+    const hs = r.H.filter((x) => x.fixe === nom).map((x) => x.h);
+    g += `<tr><td>${esc(nom)}</td><td>${fr(+cout, 0)}</td><td>${fr(+cap, 0)}</td><td>${fr(cumul, 0)}</td><td>${hs.length} (${plageHeures(hs)})</td></tr>`;
+  }
+  const autres = r.H.filter((x) => !merit.some((mm) => mm[0] === x.fixe)).map((x) => x.h);
+  if (autres.length) g += `<tr><td>Ordre de vente d'une équipe à sa limite</td><td>${fr(+da.plancher, 0)}</td><td></td><td></td><td>${autres.length} (${plageHeures(autres)})</td></tr>`;
+  g += `</tbody></table><p class="hint" style="margin-top:6px">Prix plancher ${fr(+da.plancher, 0)} €/MWh · prix plafond ${fr(+da.plafond, 0)} €/MWh.</p>`;
+  $("tblResMerit").innerHTML = g;
+
+  const ventesPos = r.H.filter((x) => x.vol < 0 && x.p >= 0);
+  $("resLecons").innerHTML = `<ul>` +
+    (aMax ? `<li><b>Le pic du soir coûte le plus cher.</b> De ${plageHeures(r.hMax)}, toutes les équipes achètent en même temps : le prix monte à ${fr(r.pMax, 0)} €/MWh. Nos produits Base et Peak ne suivent pas la forme de la consommation (le Peak s'arrête à 20 h) : ${ke(r.maxC)} sur ces heures.</li>` : "") +
+    (aNeg ? `<li><b>Vendre « à n'importe quel prix » a coûté cher la nuit.</b> De ${plageHeures(r.hNeg)}, le groupe était long (blocs Base supérieurs à la consommation d'un jour férié) : le prix est tombé à ${fr(Math.min(...r.H.map((x) => x.p)), 0)} €/MWh. Avec un prix limite de vente à 0 €/MWh, on aurait évité ${ke(r.negC)}, en gardant ${fr(r.negE, 1)} MWh en écart. Ce calcul suppose que toute notre vente a été exécutée : à confirmer avec le professeur.</li>` : "") +
+    (ventesPos.length && r.produits.length ? `<li><b>Le jour férié rend tout le monde long au même moment.</b> Le Peak et le solaire livrent à midi, le Base livre la nuit, alors que les clients consomment comme un dimanche : on revend à ${fr(Math.min(...ventesPos.map((x) => x.p)), 0)} €/MWh ce qu'on a payé ${fr(Math.min(...r.produits.map((x) => x.l.prix)), 0)} à ${fr(Math.max(...r.produits.map((x) => x.l.prix)), 0)} €/MWh.</li>` : "") +
+    `<li><b>Une journée de janvier perd forcément de l'argent.</b> On vend ${fr(+cfg.prixVente)} €/MWh toute l'année, alors que janvier est le mois le plus cher : la marge se juge sur l'année. Ce jour-là, tout acheter au spot aurait coûté ${ke(r.toutSpot)}, contre ${ke(r.coutProduits + r.net)} avec la couverture : c'est le prix de l'assurance, pas une erreur de stratégie (le spot de la classe, ${fr(r.base, 1)} €/MWh en Base, est très loin du marché de janvier).</li>` +
+    `</ul>`;
+}
+
+
+/* ============================================================
+   RÉCAPITULATIF (4e onglet)
+   ============================================================ */
+function rendreRecap() {
+  // Étape 1 : exactement le calcul de l'onglet T1 ; étape 2 : celui de l'onglet T2 (décision réelle)
+  const R1 = calculer("T1"), R2 = cfg.dates.T2 ? calculer("T2") : null;
+  const nomDec = nomDecisionT1();
+  const iDec = Math.max(0, strats.findIndex((s) => s.nom === nomDec));
+  const dec1 = R1.strats[iDec];                       // décision T1, vue le 22/09
+  const RF = R2 || R1, fin = R2 ? R2.choix : dec1;     // résultat final
+  const iFin = RF.strats.indexOf(fin);
+  const pl = +cfg.plancher, pv = +cfg.prixVente;
+  const vol = RF.c.vol0, energie = fin.covTot * vol;
+  const cout = fin.coutT1 + (fin.coutT2 || 0), prixMoy = energie > 0 ? cout / energie : null;
+  const achatT1 = decrireCourt(strats[iDec].etapes[0]);
+  const planT2 = decrireCourt(strats[iDec].etapes[1]);           // ce que S… prévoyait pour le 01/12
+  const reelT2 = R2 ? decrireCourt(strats[iFin].etapes[1]) : null; // ce qu'on a décidé le 01/12
+  const d1 = cfg.dates.T1, d2 = cfg.dates.T2, d3 = cfg.dates.T3;
+
+  // ---- bandeau
+  const ok = fin.ok;
+  $("recBanner").className = "decision-banner" + (ok ? "" : " warn");
+  $("recBanner").innerHTML =
+    `<div class="titre">${ok ? "✅" : "⚠"} Notre stratégie : ${esc(dec1.nom)} le 22/09${R2 ? `, puis ${reelT2} le 01/12` : ""}</div>` +
+    `<div class="ligne"><b>22/09</b> : ${achatT1} (${pct(dec1.covT1, 0)} du volume prévu, ${fr(dec1.coutT1 / 1e6, 1)} M€).` +
+    (R2 ? ` <b>01/12</b> : ${reelT2}${planT2 !== reelT2 ? ` — le plan du 22/09 prévoyait « ${planT2} », revu avec les vrais prix` : " — comme prévu le 22/09"}.` : "") + `</div>` +
+    `<div class="ligne">Au total : ${pct(fin.covTot, 0)} de la consommation normale achetée à l'avance, à ${fr(prixMoy)} €/MWh en moyenne. ` +
+    `Marge espérée <b>${fr(fin.esp)} €/MWh</b> (≈ ${fr(fin.esp * vol / 1e6, 1)} M€), pire cas <b>${fr(fin.pire)} €/MWh</b>` +
+    (ok ? ` — au-dessus du plancher de ${fr(pl, 1)} €/MWh.` : ` — sous le plancher de ${fr(pl, 1)} €/MWh : c'est l'option la plus protectrice, à valider par le Board.`) + `</div>` +
+    (R1.choix !== dec1 ? `<div class="ligne" style="color:var(--critical);font-weight:600">⚠ L'onglet T1 recommande ${esc(R1.choix.nom)}, mais la décision T1 utilisée ici est ${esc(dec1.nom)} (choisie à la main dans la colonne de gauche). Remets « Auto » pour être cohérent, sauf si c'est vraiment la décision transmise le 22/09.</div>` : "");
+
+  // ---- chiffres clés
+  const s0 = RF.ref;
+  $("recKpis").innerHTML = [
+    ["Consommation prévue 2027", fr(vol / 1000, 0) + " GWh", R2 ? "prévision du 01/12" : "prévision du 22/09"],
+    ["Achetée à l'avance", pct(fin.covTot, 0), `${fr(energie / 1000, 0)} GWh pour ${fr(cout / 1e6, 1)} M€`],
+    ["Marge espérée", mt(fin.esp) + " €/MWh", `vente ${fr(pv)} €/MWh · cible ${fr(+cfg.margeCible, 1)}`],
+    ["Pire cas", mt(fin.pire) + " €/MWh", s0 && s0 !== fin ? `sans aucune couverture : ${fr(s0.pire)} €/MWh` : `plancher ${fr(pl, 1)}`],
+  ].map(([l, v, d]) => `<div class="kpi"><div class="lab">${l}</div><div class="val" style="font-size:20px">${v}</div><div class="det">${d}</div></div>`).join("");
+
+  // ---- les trois dates
+  const carte = (date, titre, grand, lignes) => `<section class="card"><span class="date">${date}</span><h2 style="margin:2px 0">${titre}</h2><div class="grand">${grand}</div>${lignes.map((l) => `<div class="ligne">${l}</div>`).join("")}</section>`;
+  let h = carte("T1 · 22/09/2026", `1er achat : ${esc(dec1.nom)}`, `${pct(dec1.covT1, 0)} du volume · ${fr(dec1.coutT1 / 1e6, 1)} M€`, [
+    `Ce qu'on achète : ${achatT1}, à ${fr(dec1.prixT1)} €/MWh en moyenne (Cal-27 Base ${fr(+d1.calBase)})`,
+    `Plan pour le 01/12 : ${planT2}`,
+    `Prévision ce jour-là : espérée ${fr(dec1.esp)}, pire cas ${fr(dec1.pire)} €/MWh`]);
+  if (R2) {
+    const vCal = +d2.calBase / +d1.calBase - 1;
+    h += carte("T2 · 01/12/2026", `2e achat : ${reelT2}`, `${fr(fin.coutT2 / 1e6, 1)} M€ à ${fr(fin.prixT2)} €/MWh`, [
+      `Marché : Cal-27 Base ${fr(+d2.calBase)} (${vCal > 0 ? "+" : ""}${pct(vCal)} depuis le 22/09)`,
+      `Clients : ${fr(+d2.nbRes, 0)} RES1 (${pct(+d2.nbRes / +d1.nbRes - 1)}) · ${fr(+d2.nbPro, 0)} PRO1 (${pct(+d2.nbPro / +d1.nbPro - 1)})`,
+      `Couverture totale : ${pct(fin.covTot, 0)} · espérée ${fr(fin.esp)}, pire cas ${fr(fin.pire)} €/MWh`]);
+  }
+  if (d3 && D.jour1 && R2) {
+    const L = positionOuverte(R2, iFin, cfg.t3.temp && cfg.t3.temp.length === 24 ? "T3" : "normale");
+    const ach = L.reduce((a, l) => a + Math.max(l.open, 0), 0), ven = L.reduce((a, l) => a + Math.max(-l.open, 0), 0);
+    const conso = L.reduce((a, l) => a + l.load, 0);
+    h += carte("T3 · 31/12/2026", "Commande day-ahead du 01/01", `Acheter ${fr(ach, 0)} MWh${ven > 0.5 ? ` · revendre ${fr(ven, 0)} MWh` : ""}`, [
+      `Consommation prévue le 01/01 : ${fr(conso, 0)} MWh (température prévue, clients du 31/12)`,
+      `Livrée par nos produits : Base ${fr(fin.livB[0], 1)} MW + Peak ${fr(fin.livP[0], 1)} MW de 8h à 20h`,
+      cfg.t3.solaireOn ? `Solaire déduit : ${fr(L.reduce((a, l) => a + l.sol, 0), 0)} MWh` : `Solaire non déduit`]);
+  }
+  $("recDates").innerHTML = h;
+
+  // ---- achats
+  const agg = new Map();
+  for (const l of fin.lignes) {
+    const k = `${l.date}|${nomProduit(l)}`;
+    if (!agg.has(k)) agg.set(k, { Base: 0, Peak: 0, e: 0, c: 0 });
+    const a = agg.get(k); a[l.comp] += l.mw; a.e += l.e; a.c += l.e * (l.prix || 0);
+  }
+  let t = `<table><thead><tr><th>Date</th><th>Produit</th><th>Base (MW)</th><th>Peak (MW)</th><th>Énergie (MWh)</th><th>Prix moyen</th><th>Coût (M€)</th></tr></thead><tbody>`;
+  let eT = 0, cT = 0;
+  for (const [k, a] of agg) {
+    const [date, prod] = k.split("|"); eT += a.e; cT += a.c;
+    t += `<tr><td>${date}</td><td>${prod}</td><td>${fr(a.Base, 1)}</td><td>${fr(a.Peak, 1)}</td><td>${fr(a.e, 0)}</td><td>${a.e ? fr(a.c / a.e) : "–"}</td><td>${fr(a.c / 1e6, 2)}</td></tr>`;
+  }
+  if (!agg.size) t += `<tr><td colspan="7">Aucun achat à l'avance : tout est acheté au spot.</td></tr>`;
+  else t += `<tr><td colspan="4"><b>Total</b></td><td><b>${fr(eT, 0)}</b></td><td><b>${fr(cT / eT)}</b></td><td><b>${fr(cT / 1e6, 2)}</b></td></tr>`;
+  $("recAchats").innerHTML = t + `</tbody></table><div class="hint">Une valeur négative veut dire qu'on revend au 01/12 une partie de ce qui avait été acheté le 22/09 (par exemple si les clients ont baissé).</div>`;
+
+  // ---- pourquoi
+  const SS = sousStrategies(R1, iDec), s0T1 = R1.ref;
+  const pts = [
+    `<b>Une marge très serrée.</b> Acheter le 22/09 toute notre consommation aurait coûté ${fr(R1.prixProfil)} €/MWh pour une vente à ${fr(pv)} : il restait au mieux ${fr(pv - R1.prixProfil)} €/MWh. La marge cible de ${fr(+cfg.margeCible, 1)} €/MWh n'était pas atteignable.`,
+    `<b>Le 22/09, la règle du Board.</b> On garde les stratégies dont le pire cas reste au-dessus de ${fr(pl, 1)} €/MWh, puis on prend la meilleure marge espérée. ` +
+      (R1.choixRegle ? `${esc(R1.choix.nom)} respectait cette règle.` : `Aucune ne la respectait : on a pris la plus protectrice (meilleur pire cas), ${esc(R1.choix.nom)}.`),
+    s0T1 && s0T1 !== dec1 ? `<b>Le prix de l'assurance.</b> Sans couverture, on gagnait un peu plus en moyenne (${fr(s0T1.esp)} contre ${fr(dec1.esp)} €/MWh) mais on risquait ${fr(s0T1.pire)} €/MWh dans le pire cas, contre ${fr(dec1.pire)}.` : null,
+    R2 ? `<b>Le 01/12, on a revu le 2e achat.</b> L'achat du 22/09 ne se change plus. Avec les vrais prix (Cal-27 ${pct(+d2.calBase / +d1.calBase - 1)}) et la nouvelle prévision de clients, on a comparé les façons de faire le 2e achat avec la même règle du Board : « ${reelT2} » ${fin.ok ? "donne la meilleure marge espérée en restant au-dessus du plancher" : "est la plus protectrice"}.` : null,
+    SS.liste.length > 1 ? `<b>Les produits.</b> Acheter en mois (janvier à juin) puis Q3/Q4 suit la forme de notre consommation, très concentrée l'hiver. Les 16 combinaisons de produits testées donnent des résultats proches ; le Cal, qui achète autant l'été que l'hiver, protège moins bien.` : null,
+    `<b>Les limites.</b> 4 années météo seulement, des chocs de prix choisis, et un prix du 2e achat anticipé avec alpha à T1. Le Monte Carlo et les tests de sensibilité (onglets T1 et T2) vérifient que la décision tient.`,
+  ].filter(Boolean);
+  $("recPourquoi").innerHTML = `<ul>${pts.map((x) => `<li>${x}</li>`).join("")}</ul>`;
+
+  // ---- étape 1 : tableau de l'onglet T1
+  let a1 = `<table><thead><tr><th>Stratégie</th><th>Espérée</th><th>Pire cas</th><th>OK</th></tr></thead><tbody>`;
+  R1.strats.forEach((s) => {
+    const c = s === dec1;
+    a1 += `<tr class="${c ? "chosen" : ""}"><td>${esc(s.nom)}${c ? " ✓" : ""}${s === R1.choix && !c ? " (recommandée)" : ""}</td><td>${mt(s.esp)}</td><td><b>${mt(s.pire)}</b></td><td>${badgeOK(s)}</td></tr>`;
+  });
+  $("recT1").innerHTML = a1 + `</tbody></table>`;
+
+  // ---- étape 2 : tableau de l'onglet T2 (options pour le 2e achat)
+  if (R2) {
+    const vus = new Set();
+    let a2 = `<table><thead><tr><th>2e achat (01/12)</th><th>Espérée</th><th>Pire cas</th><th>OK</th></tr></thead><tbody>`;
+    R2.strats.forEach((s, i) => {
+      const lib = decrireCourt(strats[i].etapes[1]);
+      if (vus.has(lib) && s !== fin) return;   // S1 et S2 ont la même règle T2 : une seule ligne
+      vus.add(lib);
+      const c = s === fin;
+      a2 += `<tr class="${c ? "chosen" : ""}"><td style="white-space:normal">${lib}${c ? " ✓" : ""}<div class="hint" style="margin:0">règle T2 de ${esc(code(s.nom))}</div></td><td>${mt(s.esp)}</td><td><b>${mt(s.pire)}</b></td><td>${badgeOK(s)}</td></tr>`;
+    });
+    $("recT2").innerHTML = a2 + `</tbody></table>`;
+  } else $("recT2").innerHTML = `<div class="hint">Pas encore de données du 01/12.</div>`;
+}
+
+/* ============================================================
+   EXPORT VERS PYTHON
+   ============================================================ */
+function exporterPython() {
+  const n = (v) => Number(v).toString();
+  const t1 = cfg.dates.T1;
+  const mois = (d) => `{\n` + (d.mois || []).map(([m, b, p]) => `    "${m}": (${n(b)}, ${n(p)}),\n`).join("") + `}\n`;
+  let s = `# ===== config.py : bloc T1 (22/09/2026) =====\n`;
+  s += `NB_RES1 = ${n(t1.nbRes)}\nNB_PRO1 = ${n(t1.nbPro)}\nTHETA_RES1 = ${n(cfg.thRes)}\nTHETA_PRO1 = ${n(cfg.thPro)}\n`;
+  s += `PUISSANCE_RES1 = ${n(cfg.pRes)}\nPUISSANCE_PRO1 = ${n(cfg.pPro)}\n\n`;
+  s += `PRIX_VENTE = ${n(cfg.prixVente)}\nMARGE_CIBLE = ${n(cfg.margeCible)}\nPLANCHER_RISQUE = ${n(cfg.plancher)}\nPRIME_RISQUE = ${n(cfg.prime)}\nALPHA = ${n(cfg.alpha)}\n\n`;
+  s += `FORWARD_T1_CAL_BASE = ${n(t1.calBase)}\nFORWARD_T1_CAL_PEAK = ${n(t1.calPeak)}\nFORWARDS_T1 = {\n`;
+  t1.q.forEach((x, q) => { s += `    "Q${q + 1}": {"base": ${n(x[0])}, "peak": ${n(x[1])}},\n`; });
+  s += `}\nMOIS_T1 = ${mois(t1)}`;
+  s += `\nCHOCS_PRIX = {\n` + cfg.chocs.map(([nom, v]) => `    ${JSON.stringify(nom)}: ${n(v)},\n`).join("") + `}\n`;
+  s += `# (b estimé par la régression : ${fr(D.meta.b)} ; valeur utilisée ici : ${n(cfg.b)})\n\n`;
+  s += `STRATEGIE_T1 = ${JSON.stringify(cfg.decisionT1)}\n`;
+  for (const t of ["T2", "T3"]) {
+    const d = cfg.dates[t]; if (!d) continue;
+    s += `\n# ===== config.py : bloc ${t} =====\n`;
+    s += `CLIENTS_${t} = {"RES1": ${n(d.nbRes)}, "PRO1": ${n(d.nbPro)}}\n`;
+    s += `FORWARD_${t}_CAL = {"base": ${n(d.calBase)}, "peak": ${n(d.calPeak)}}\nFORWARDS_${t} = {\n`;
+    d.q.forEach((x, q) => { s += `    "Q${q + 1}": {"base": ${n(x[0])}, "peak": ${n(x[1])}},\n`; });
+    s += `}\nMOIS_${t} = ${mois(d)}`;
+  }
+  if (cfg.dates.T3) {
+    s += `TEMPERATURE_PREVUE_0101 = [${cfg.t3.temp.map(n).join(", ")}]\n`;
+    s += `SOLAIRE_PREVU_0101 = [${cfg.t3.solaire.map(n).join(", ")}]\n`;
+  }
+  s += `\n# ===== config.py : stratégies du tableau de bord =====\n`;
+  s += `# "mois" : 8 ratios (Jan, Fév, Mar, Avr, Mai, Juin, Q3, Q4) ; "trimestres" : 4 ratios ; Cal : 1 ratio\nSTRATEGIES_DASHBOARD = {\n`;
+  for (const st of strats) {
+    const et = st.etapes.filter((e) => e.type !== "aucun");
+    s += `    ${JSON.stringify(st.nom)}: [` + (et.length ? "\n" : "");
+    for (const e of et) s += `        ("${e.date}", "${e.type}", ${Array.isArray(e.ratio) ? `[${e.ratio.map(n).join(", ")}]` : n(e.ratio)}),\n`;
+    s += (et.length ? "    " : "") + `],\n`;
+  }
+  s += `}\n`;
+  $("exportText").value = s;
+  $("modal").classList.add("show");
+}
+
+
+/* ============================================================
+   VERROU DE MODIFICATION + ENREGISTREMENT CSV
+   ------------------------------------------------------------
+   Par défaut, le tableau de bord est en lecture seule (utile sur
+   GitHub). Le bouton « Modifier » déverrouille les champs pour
+   cette session. Les changements restent dans ce navigateur ;
+   « Enregistrer en CSV » écrit dashboard_local.csv, que
+   export_dashboard.py relit au prochain lancement.
+   ============================================================ */
+let editable = false;   // refermé à chaque ouverture de la page
+function appliquerVerrou() {
+  const champs = "#config input, #config select, #config button, #editor input, #editor select, #editor button, #addStrat";
+  document.querySelectorAll(champs).forEach((el) => { el.disabled = !editable; });
+  $("btnEdit").textContent = editable ? "🔓 Verrouiller" : "🔒 Modifier";
+  $("btnEdit").classList.toggle("primary", editable);
+  $("editActions").hidden = !editable;
+  $("lockHint").innerHTML = editable
+    ? "Modification activée. Les changements restent dans ce navigateur. Pour les garder dans le projet : « Enregistrer en CSV » dans ton dossier, puis relance le tableau de bord."
+    : "Lecture seule. Clique sur « Modifier » pour changer les paramètres ou les stratégies (les changements restent en local).";
+}
+
+const COLS8 = ["Jan", "Fev", "Mar", "Avr", "Mai", "Juin", "Q3", "Q4"];
+function ratios8(e) {
+  if (e.type === "mois" || e.type === "complement") return e.ratio.map(Number);
+  if (e.type === "trimestres") return PQ.map((q) => +e.ratio[q]);
+  return Array(8).fill(+e.ratio || 0);
+}
+function texteCSV() {
+  const L = [["section", "cle", "valeur", "date", "type", "produit"].concat(COLS8)];
+  const plat = (o, pre) => {
+    for (const [k, v] of Object.entries(o)) {
+      const cle = pre ? `${pre}.${k}` : k;
+      if (v && typeof v === "object") plat(v, cle); else L.push(["parametre", cle, String(v)]);
+    }
+  };
+  const c = clone(cfg); delete c.tab; delete c.sub; delete c.rejeuT3;
+  plat(c, "");
+  for (const st of strats) {
+    const et = st.etapes.filter((e) => e.type !== "aucun");
+    if (!et.length) L.push(["strategie", st.nom, "", "", "aucun", ""]);
+    for (const e of et) L.push(["strategie", st.nom, "", e.date, e.type, e.prod || ""].concat(ratios8(e).map(String)));
+  }
+  const champ = (x) => /[;"\n]/.test(x) ? `"${x.replace(/"/g, '""')}"` : x;
+  return "\ufeff" + L.map((r) => r.map((x) => champ(String(x))).join(";")).join("\r\n") + "\r\n";
+}
+async function enregistrerCSV() {
+  const txt = texteCSV(), nom = "dashboard_local.csv";
+  try {
+    if (window.showSaveFilePicker) {   // Chrome / Edge : on choisit directement le dossier du projet
+      const h = await window.showSaveFilePicker({ suggestedName: nom, types: [{ description: "CSV", accept: { "text/csv": [".csv"] } }] });
+      const w = await h.createWritable(); await w.write(txt); await w.close();
+      $("btnCsv").textContent = "✓ Enregistré"; setTimeout(() => { $("btnCsv").textContent = "💾 Enregistrer en CSV"; }, 1800);
+      return;
+    }
+  } catch (e) { if (e && e.name === "AbortError") return; }
+  const a = document.createElement("a");   // autres navigateurs : téléchargement
+  a.href = URL.createObjectURL(new Blob([txt], { type: "text/csv;charset=utf-8" })); a.download = nom;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+/* Recalcul différé (évite de recalculer à chaque frappe) */
+let timer = null;
+function planifier(rebuildEditor = true) {
+  clearTimeout(timer);
+  timer = setTimeout(() => rendre(rebuildEditor), 120);
+}
+
+/* ============================================================
+   DÉMARRAGE
+   ============================================================ */
+$("subtitle").textContent = `Couverture ${D.meta.annee_cible} · données générées le ${D.meta.genere_le}`;
+$("foot").textContent = `Pente prix-volume estimée : b = ${fr(D.meta.b)} (R² = ${fr(D.meta.r2)}, ${D.meta.n} jours d'hiver ; sans 2022 : ${fr(D.meta.b_sans_2022)}). ` +
+  `Load normale : moyenne dé-météorisée ${D.meta.annees_ref.join(", ")}. Données générées le ${D.meta.genere_le}.`;
+function toutReinitialiser() {
+  const tab = cfg.tab;
+  cfg = clone(DEFAULT_CFG); cfg.tab = tab; strats = clone(DEFAULT_STRATS); sel = 0; chocVue = 0; poStrat = null; poSrc = null;
+  construirePanneau(); rendre();
+}
+$("btnReset").addEventListener("click", toutReinitialiser);
+$("btnReset2").addEventListener("click", toutReinitialiser);
+$("btnExport").addEventListener("click", exporterPython);
+$("btnCsv").addEventListener("click", enregistrerCSV);
+$("btnEdit").addEventListener("click", () => { editable = !editable; appliquerVerrou(); });
+$("btnClose").addEventListener("click", () => $("modal").classList.remove("show"));
+$("btnCopy").addEventListener("click", () => { $("exportText").select(); try { navigator.clipboard.writeText($("exportText").value); } catch (e) { document.execCommand("copy"); } $("btnCopy").textContent = "Copié ✓"; setTimeout(() => $("btnCopy").textContent = "Copier", 1500); });
+$("btnTheme").addEventListener("click", () => {
+  const dark = document.documentElement.dataset.theme
+    ? document.documentElement.dataset.theme === "dark"
+    : matchMedia("(prefers-color-scheme: dark)").matches;
+  document.documentElement.dataset.theme = dark ? "light" : "dark";
+  try { localStorage.setItem(STORE + "-theme", document.documentElement.dataset.theme); } catch (e) {}
+});
+document.querySelectorAll("#tabs button").forEach((b) => b.addEventListener("click", () => {
+  if (!ongletDispo(b.dataset.tab)) return;
+  cfg.tab = b.dataset.tab; chocVue = 0; poStrat = null; construirePanneau(); rendre(); window.scrollTo(0, 0);
+}));
+document.querySelectorAll("#subT2 button").forEach((b) => b.addEventListener("click", () => { cfg.sub = b.dataset.sub; chocVue = 0; rendre(); }));
+$("rejeuT3").addEventListener("change", (e) => { cfg.rejeuT3 = e.target.checked; chocVue = 0; rendre(); });
+for (const [id, k] of [["mcN", "n"], ["mcSig", "sigma"], ["mcSq", "sigmaQ"]])
+  $(id).addEventListener("input", (e) => { const v = parseFloat(e.target.value); if (isFinite(v) && v >= 0) { cfg.mc[k] = v; planifier(false); } });
+$("mcSeed").addEventListener("click", () => { cfg.mc.seed = Math.floor(Math.random() * 1e9); rendre(false); });
+$("poStrat").addEventListener("change", (e) => { poStrat = +e.target.value; rendre(false); });
+$("poSrc").addEventListener("change", (e) => { poSrc = e.target.value; rendre(false); });
+$("poCsv").addEventListener("click", telechargerCSV);
+construirePanneau();
+rendre();
+window.__MG = { calculer, comparerProduits, sousStrategies, contexte, get R() { return R; }, get Rpo() { return Rpo; }, cfg: () => cfg, strats: () => strats };
+</script>
+</body>
+</html>
