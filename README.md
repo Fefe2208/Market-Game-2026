@@ -1,4 +1,4 @@
-# Market Game 2027 : couverture d'un portefeuille d'électricité
+# Market Game 2026 – 2027 : couverture d'un portefeuille d'électricité
 
 Projet du cours **Energy Market** (EPF, 5e année, majeure Énergie et Environnement).
 Nous jouons l'équipe Energy Management d'un fournisseur d'électricité français
